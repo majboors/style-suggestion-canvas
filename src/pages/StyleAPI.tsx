@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -19,6 +18,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { 
   Key, 
   User, 
@@ -35,24 +35,32 @@ import ImageCard from "@/components/ImageCard";
 import PreferenceChart from "@/components/PreferenceChart";
 import styleApiClient from "@/services/StyleApiClient";
 
+interface Preferences {
+  Classic: number;
+  Creative: number;
+  Fashionista: number;
+  Sophisticated: number;
+  Romantic: number;
+  Natural: number;
+  Modern: number;
+  Glam: number;
+  Streetstyle: number;
+}
+
 const StyleAPI = () => {
-  // Authentication state
   const [accessId, setAccessId] = useState("");
   const [gender, setGender] = useState("women");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
-  // Image suggestion state
   const [imageUrl, setImageUrl] = useState("");
   const [currentIteration, setCurrentIteration] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   
-  // Profile state
-  const [preferences, setPreferences] = useState<Record<string, number> | null>(null);
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
-  // Check if user is already authenticated
   useEffect(() => {
     if (styleApiClient.isAuthenticated) {
       loadProfile();
@@ -73,7 +81,6 @@ const StyleAPI = () => {
         description: "You can now test the style API features.",
       });
       
-      // Get initial suggestion and profile data
       getFirstSuggestion();
     } catch (error) {
       console.error("Authentication error:", error);
@@ -130,14 +137,12 @@ const StyleAPI = () => {
     try {
       setIsLoadingSuggestion(true);
       
-      // Get next suggestion without providing feedback (skip option)
       const response = await styleApiClient.submitFeedbackAndGetNextImage("dislike");
       
       setImageUrl(response.image_url);
       setCurrentIteration(response.iteration);
       setIsCompleted(response.completed);
       
-      // If we're done with all iterations, load the profile
       if (response.completed) {
         loadProfile();
       }
@@ -158,7 +163,22 @@ const StyleAPI = () => {
     try {
       setIsLoadingProfile(true);
       const profile = await styleApiClient.getProfile();
-      setPreferences(profile.top_styles);
+      
+      if (profile.top_styles) {
+        const typedPreferences: Preferences = {
+          Classic: profile.top_styles.Classic || 0,
+          Creative: profile.top_styles.Creative || 0,
+          Fashionista: profile.top_styles.Fashionista || 0,
+          Sophisticated: profile.top_styles.Sophisticated || 0,
+          Romantic: profile.top_styles.Romantic || 0,
+          Natural: profile.top_styles.Natural || 0,
+          Modern: profile.top_styles.Modern || 0,
+          Glam: profile.top_styles.Glam || 0,
+          Streetstyle: profile.top_styles.Streetstyle || 0
+        };
+        setPreferences(typedPreferences);
+      }
+      
       setSelectionHistory(profile.selection_history);
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -188,12 +208,7 @@ const StyleAPI = () => {
   };
   
   const handleFeedbackSubmitted = () => {
-    // After feedback is submitted, image card will update
-    // so we need to reload the profile and get a new image
     loadProfile();
-    
-    // The new image will be fetched automatically as part of the feedback submission
-    // We just need to update our local state with the new image data
     setCurrentIteration(styleApiClient.getCurrentIteration());
   };
   
