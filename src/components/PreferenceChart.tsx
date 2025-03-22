@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import {
   Bar,
@@ -15,21 +14,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
-interface Preferences {
-  Classic: number;
-  Creative: number;
-  Fashionista: number;
-  Sophisticated: number;
-  Romantic: number;
-  Natural: number;
-  Modern: number;
-  Glam: number;
-  Streetstyle: number;
-  [key: string]: number; // Allow other style names
+interface ChartPreferencesType {
+  [key: string]: number;
 }
 
 interface PreferenceChartProps {
-  preferences: Preferences | null;
+  preferences: ChartPreferencesType | null;
   isLoading: boolean;
   rawResponse?: any;
   selectionHistory?: any[];
@@ -45,22 +35,18 @@ const PreferenceChart = ({
   const [topStylesData, setTopStylesData] = useState<{ style: string; score: number }[]>([]);
 
   useEffect(() => {
-    // Process regular preferences if available
     if (preferences) {
       const data = Object.entries(preferences).map(([name, value]) => ({
         name,
         value: Number(value.toFixed(2)),
       }));
       
-      // Sort data by value in descending order
       const sortedData = [...data].sort((a, b) => b.value - a.value);
       setChartData(sortedData);
     }
 
-    // Process top styles from raw response if available
     if (rawResponse && rawResponse.top_styles) {
       const topStyles = Object.entries(rawResponse.top_styles).map(([key, value]) => {
-        // Handle different possible formats of the top_styles data
         let style, score;
         if (Array.isArray(value)) {
           [style, score] = value;
@@ -103,7 +89,6 @@ const PreferenceChart = ({
         <CardDescription>Your current style profile based on your likes and dislikes</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        {/* Top Styles Section - Display directly from API response */}
         {topStylesData.length > 0 && (
           <div className="mb-6 p-4 border rounded-md bg-slate-50">
             <h3 className="text-sm font-medium mb-2">Top Styles (from API)</h3>
@@ -125,7 +110,6 @@ const PreferenceChart = ({
           </div>
         )}
 
-        {/* Regular Chart */}
         {chartData.length > 0 ? (
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -160,7 +144,6 @@ const PreferenceChart = ({
           </div>
         )}
 
-        {/* Raw Response Data Section */}
         {rawResponse && (
           <Accordion type="single" collapsible className="mt-6 border rounded-md">
             <AccordionItem value="raw-response">
@@ -178,7 +161,6 @@ const PreferenceChart = ({
           </Accordion>
         )}
 
-        {/* Selection History Raw Data Section */}
         {selectionHistory && selectionHistory.length > 0 && (
           <Accordion type="single" collapsible className="mt-4 border rounded-md">
             <AccordionItem value="selection-history">

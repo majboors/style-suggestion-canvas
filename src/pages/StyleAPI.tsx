@@ -61,6 +61,8 @@ const StyleAPI = () => {
   const [currentIteration, setCurrentIteration] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState("");
+  const [currentImageKey, setCurrentImageKey] = useState("");
   
   const [preferences, setPreferences] = useState<StylePreferences | null>(null);
   const [chartPreferences, setChartPreferences] = useState<ChartStylePreferences | null>(null);
@@ -240,6 +242,12 @@ const StyleAPI = () => {
       setCurrentIteration(response.iteration);
       setIsCompleted(response.completed);
       
+      if (response.style) {
+        setCurrentStyle(response.style);
+      }
+      if (response.image_key) {
+        setCurrentImageKey(response.image_key);
+      }
     } catch (error) {
       console.error("Error getting first suggestion:", error);
       toast.error("Failed to get suggestion", {
@@ -259,11 +267,29 @@ const StyleAPI = () => {
     try {
       setIsLoadingSuggestion(true);
       
-      const response = await styleApiClient.submitFeedbackAndGetNextImage("dislike");
+      const feedback = "dislike";
+      let response;
+      
+      if (currentIteration === 29) {
+        response = await styleApiClient.submitFeedbackAndGetNextImage(
+          feedback,
+          currentStyle,
+          currentImageKey
+        );
+      } else {
+        response = await styleApiClient.submitFeedbackAndGetNextImage(feedback);
+      }
       
       setImageUrl(response.image_url);
       setCurrentIteration(response.iteration);
       setIsCompleted(response.completed);
+      
+      if (response.style) {
+        setCurrentStyle(response.style);
+      }
+      if (response.image_key) {
+        setCurrentImageKey(response.image_key);
+      }
       
       if (response.completed) {
         loadProfile();
@@ -279,7 +305,15 @@ const StyleAPI = () => {
     }
   };
   
-  const handleFeedbackSubmitted = (newImageUrl?: string, newIteration?: number) => {
+  const handleFeedbackSubmitted = (newImageUrl?: string, newIteration?: number, style?: string, imageKey?: string) => {
+    if (style) {
+      setCurrentStyle(style);
+    }
+    
+    if (imageKey) {
+      setCurrentImageKey(imageKey);
+    }
+    
     if (newImageUrl && newIteration) {
       setImageUrl(newImageUrl);
       setCurrentIteration(newIteration);
@@ -881,3 +915,4 @@ const StyleAPI = () => {
 };
 
 export default StyleAPI;
+
