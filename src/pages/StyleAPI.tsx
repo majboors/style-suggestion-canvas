@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Card, 
@@ -30,7 +31,8 @@ import {
   Save,
   Copy,
   Plus,
-  HelpCircle
+  HelpCircle,
+  BookText
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -344,7 +346,15 @@ const StyleAPI = () => {
             <ImageIcon className="h-6 w-6 text-apple-blue" />
             <h1 className="text-2xl font-medium text-apple-black">Style API Tester</h1>
           </div>
-          <ApiStatusIndicator />
+          <div className="flex items-center space-x-4">
+            <Link to="/api-docs">
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <BookText className="h-4 w-4" />
+                <span className="hidden sm:inline">API Docs</span>
+              </Button>
+            </Link>
+            <ApiStatusIndicator />
+          </div>
         </div>
       </header>
       
@@ -915,4 +925,3 @@ const StyleAPI = () => {
 };
 
 export default StyleAPI;
-

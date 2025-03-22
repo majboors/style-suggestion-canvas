@@ -1,71 +1,146 @@
-
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { 
+  ImageIcon, 
+  BookText,
+  ArrowRight,
+  Github
+} from "lucide-react";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-apple-gray">
-      <div className="max-w-3xl w-full px-4 text-center animate-slide-down">
-        <span className="px-3 py-1 text-sm font-medium bg-apple-blue bg-opacity-10 text-apple-blue rounded-full mb-4 inline-block">
-          Style Preference API Test
-        </span>
-        <h1 className="text-5xl md:text-6xl font-bold mb-6 tracking-tight text-apple-black">
-          Discover Your <span className="text-apple-blue">Style Profile</span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Explore and test our Style Preference API that learns your personal style
-          preferences and delivers personalized recommendations.
-        </p>
-        <div className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <Link to="/style-api">
-            <Button className="bg-apple-blue hover:bg-apple-blue-light text-white min-w-[180px] h-12 rounded-lg text-base transition-all-300 shadow-lg hover:shadow-xl">
-              Test Style API
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-      
-      <div className="max-w-6xl w-full px-6 mt-16 md:mt-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-6 bg-white rounded-xl shadow-sm transition-all-300 hover:shadow-md">
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-apple-blue">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              </svg>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-white border-b border-gray-200 py-4">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-800">Style API Project</h1>
+            <div className="flex items-center gap-4">
+              <Link to="/style-api">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Style API Tester
+                </Button>
+              </Link>
+              <Link to="/api-docs">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <BookText className="h-4 w-4" />
+                  API Documentation
+                </Button>
+              </Link>
             </div>
-            <h3 className="text-xl font-medium mb-2">Authentication</h3>
-            <p className="text-gray-600">
-              Test the authentication flow and get your AI ID to access the Style API features.
-            </p>
-          </div>
-          
-          <div className="p-6 bg-white rounded-xl shadow-sm transition-all-300 hover:shadow-md">
-            <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-purple-600">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-medium mb-2">Style Suggestions</h3>
-            <p className="text-gray-600">
-              View and rate style suggestions to help train the algorithm to your preferences.
-            </p>
-          </div>
-          
-          <div className="p-6 bg-white rounded-xl shadow-sm transition-all-300 hover:shadow-md">
-            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-green-600">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-medium mb-2">Style Profile</h3>
-            <p className="text-gray-600">
-              View your evolving style profile as you provide feedback on different styles.
-            </p>
           </div>
         </div>
-      </div>
+      </header>
+
+      <main className="flex-1 container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl font-bold mb-4">Style Preference API</h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Build personalized style profiles through iterative user feedback.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Link to="/style-api">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+                  Try the Style API
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/api-docs">
+                <Button size="lg" variant="outline">
+                  View API Documentation
+                  <BookText className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <Separator className="my-12" />
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5 text-blue-500" />
+                  Style API Tester
+                </CardTitle>
+                <CardDescription>
+                  Interactive tool to test and experiment with the Style API
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Use our visual interface to:
+                </p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                  <li>Create style preference profiles</li>
+                  <li>Rate fashion suggestions</li>
+                  <li>View your style profile results</li>
+                  <li>Test the full API workflow</li>
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Link to="/style-api" className="w-full">
+                  <Button className="w-full">Go to Style API Tester</Button>
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookText className="h-5 w-5 text-blue-500" />
+                  API Documentation
+                </CardTitle>
+                <CardDescription>
+                  Complete documentation for integrators and developers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Our documentation includes:
+                </p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                  <li>Detailed API endpoints</li>
+                  <li>Authentication instructions</li>
+                  <li>Request/response examples</li>
+                  <li>Code samples in multiple languages</li>
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Link to="/api-docs" className="w-full">
+                  <Button variant="outline" className="w-full">View API Documentation</Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="mt-12 bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold mb-4">About This Project</h3>
+            <p className="text-gray-600">
+              This project demonstrates a style preference API that builds user fashion profiles through an iterative process.
+              Users rate fashion images, and the system learns their preferences to create a personalized style profile.
+            </p>
+            <div className="flex justify-center mt-6">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Github className="h-4 w-4" />
+                View on GitHub
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="bg-white border-t border-gray-200 py-6">
+        <div className="container mx-auto px-4">
+          <p className="text-center text-gray-600 text-sm">
+            Style API Project • Created with Lovable • {new Date().getFullYear()}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
