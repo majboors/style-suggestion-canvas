@@ -41,7 +41,8 @@ import ImageCard from "@/components/ImageCard";
 import PreferenceChart from "@/components/PreferenceChart";
 import styleApiClient from "@/services/StyleApiClient";
 
-interface Preferences {
+// Rename to StylePreferences to avoid conflict with PreferenceChart's Preferences
+interface StylePreferences {
   Classic: number;
   Creative: number;
   Fashionista: number;
@@ -51,6 +52,7 @@ interface Preferences {
   Modern: number;
   Glam: number;
   Streetstyle: number;
+  [key: string]: number; // Allow other style names
 }
 
 const StyleAPI = () => {
@@ -67,7 +69,7 @@ const StyleAPI = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   
-  const [preferences, setPreferences] = useState<Preferences | null>(null);
+  const [preferences, setPreferences] = useState<StylePreferences | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -161,7 +163,7 @@ const StyleAPI = () => {
       setRawProfileResponse(profile);
       
       if (profile.top_styles) {
-        const typedPreferences: Preferences = {
+        const typedPreferences: StylePreferences = {
           Classic: profile.top_styles.Classic || 0,
           Creative: profile.top_styles.Creative || 0,
           Fashionista: profile.top_styles.Fashionista || 0,
@@ -273,6 +275,14 @@ const StyleAPI = () => {
       setImageUrl(newImageUrl);
       setCurrentIteration(newIteration);
       setIsCompleted(newIteration >= 30);
+      
+      setTimeout(() => {
+        loadProfile();
+      }, 1000);
+    } else if (newIteration && !newImageUrl) {
+      // Handle case where we reached the end (no more images but valid iteration)
+      setCurrentIteration(newIteration);
+      setIsCompleted(true);
       
       setTimeout(() => {
         loadProfile();

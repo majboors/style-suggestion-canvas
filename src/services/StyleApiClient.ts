@@ -1,3 +1,4 @@
+
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -11,7 +12,7 @@ interface IterationResponse {
 
 interface ProfileResponse {
   top_styles: {
-    [key: string]: number;
+    [key: string]: number | [string, number] | { [key: string]: number };
   };
   selection_history: {
     image: string;
@@ -134,36 +135,64 @@ class StyleApiClient {
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
       // Call the API with the next iteration number
-      const response = await fetch(
-        `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "AI-ID": this.aiId,
-          },
-          body: JSON.stringify({ feedback: feedbackValue }),
+      try {
+        const response = await fetch(
+          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "AI-ID": this.aiId,
+            },
+            body: JSON.stringify({ feedback: feedbackValue }),
+          }
+        );
+
+        // Handle "No more images available" error by treating it as completion
+        if (response.status === 400) {
+          const errorData = await response.json();
+          if (errorData.error === "No more images available") {
+            console.log("No more images available - marking as completed");
+            this.setCurrentIteration(30); // Set to max iteration
+            return {
+              image_url: "",
+              iteration: 30,
+              completed: true
+            };
+          }
+          throw new Error(`Failed to submit feedback: ${response.status} - ${errorData.error || 'Unknown error'}`);
         }
-      );
 
-      if (!response.ok) {
-        const errorResponse = await response.json();
-        console.error(`API error ${response.status}:`, errorResponse);
-        throw new Error(`Failed to submit feedback: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
+        if (!response.ok) {
+          const errorResponse = await response.json();
+          throw new Error(`Failed to submit feedback: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
+        }
+
+        const data: IterationResponse = await response.json();
+        console.log(`Response from API:`, data);
+        
+        // Update our current iteration to what the API returned
+        this.setCurrentIteration(data.iteration);
+        
+        // Set completed flag if we've reached 30 iterations
+        const isCompleted = data.iteration >= 30;
+        return {
+          ...data,
+          completed: isCompleted
+        };
+      } catch (error) {
+        // Check if the error message indicates "No more images available"
+        if (error instanceof Error && error.message.includes("No more images available")) {
+          console.log("No more images available - marking as completed");
+          this.setCurrentIteration(30); // Set to max iteration
+          return {
+            image_url: "",
+            iteration: 30,
+            completed: true
+          };
+        }
+        throw error;
       }
-
-      const data: IterationResponse = await response.json();
-      console.log(`Response from API:`, data);
-      
-      // Update our current iteration to what the API returned
-      this.setCurrentIteration(data.iteration);
-      
-      // Set completed flag if we've reached 30 iterations
-      const isCompleted = data.iteration >= 30;
-      return {
-        ...data,
-        completed: isCompleted
-      };
     } catch (error) {
       console.error("Error submitting feedback or getting next image:", error);
       throw error;

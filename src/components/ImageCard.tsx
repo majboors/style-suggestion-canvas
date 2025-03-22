@@ -24,12 +24,15 @@ const ImageCard = ({
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     // Reset image loaded state when URL changes
     setImageLoaded(false);
     // Reset feedback state when iteration changes
     setFeedback(null);
+    // Reset retry count when iteration changes
+    setRetryCount(0);
   }, [imageUrl, iteration]);
 
   useEffect(() => {
@@ -43,6 +46,9 @@ const ImageCard = ({
           });
         } catch (error) {
           console.error("Error auto-saving profile:", error);
+          toast.error("Failed to auto-save profile", {
+            description: "Please try saving manually.",
+          });
         }
       };
       
@@ -59,16 +65,47 @@ const ImageCard = ({
       
       // Only make API call if not already completed
       if (!isCompleted) {
-        const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
-        
-        toast.success(`You ${type}d this style`, {
-          description: "Your preferences have been updated.",
-        });
-        
-        // Wait a bit before notifying parent with the new image data
-        setTimeout(() => {
-          onFeedbackSubmitted(response.image_url, response.iteration);
-        }, 750);
+        try {
+          const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
+          
+          toast.success(`You ${type}d this style`, {
+            description: "Your preferences have been updated.",
+          });
+          
+          // If the API returned an empty URL but marked it as completed,
+          // we should notify but not update the image
+          if (!response.image_url && response.completed) {
+            toast.info("No more images available", {
+              description: "You've completed all available iterations.",
+            });
+            
+            // Wait a bit before notifying parent with completion status
+            setTimeout(() => {
+              onFeedbackSubmitted(undefined, response.iteration);
+            }, 750);
+            return;
+          }
+          
+          // Wait a bit before notifying parent with the new image data
+          setTimeout(() => {
+            onFeedbackSubmitted(response.image_url, response.iteration);
+          }, 750);
+        } catch (error) {
+          // If we got a "No more images" error, handle it specially
+          if (error instanceof Error && error.message.includes("No more images available")) {
+            toast.info("No more images available", {
+              description: "You've completed all available iterations.",
+            });
+            
+            // Notify parent that we're done
+            setTimeout(() => {
+              onFeedbackSubmitted(undefined, 30);
+            }, 750);
+            return;
+          }
+          
+          throw error; // Re-throw for the catch block below
+        }
       } else {
         // Still notify parent for completion case
         setTimeout(() => {
@@ -78,9 +115,24 @@ const ImageCard = ({
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);
       setFeedback(null);
-      toast.error(`Failed to submit feedback`, {
-        description: "Please try again later.",
-      });
+      
+      // If we've already retried a few times, show a more detailed error
+      if (retryCount >= 2) {
+        toast.error(`Failed to submit feedback`, {
+          description: "There seems to be an issue with the API. Please try again later.",
+        });
+      } else {
+        toast.error(`Failed to submit feedback`, {
+          description: "Please try again.",
+          action: {
+            label: "Retry",
+            onClick: () => {
+              setRetryCount(prev => prev + 1);
+              handleFeedback(type);
+            }
+          }
+        });
+      }
       
       // Notify parent of error
       onFeedbackSubmitted();
@@ -100,12 +152,14 @@ const ImageCard = ({
           </div>
         )}
         
-        <img 
-          src={imageUrl} 
-          alt="Style suggestion" 
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
-          onLoad={() => setImageLoaded(true)}
-        />
+        {imageUrl && (
+          <img 
+            src={imageUrl} 
+            alt="Style suggestion" 
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
+            onLoad={() => setImageLoaded(true)}
+          />
+        )}
         
         <div className="absolute top-2 right-2">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -119,7 +173,7 @@ const ImageCard = ({
           variant="outline" 
           size="sm" 
           className={`transition-all-200 ${feedback === 'dislike' ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
-          disabled={isLoading || isCompleted}
+          disabled={isLoading || isCompleted || !imageUrl}
           onClick={() => handleFeedback('dislike')}
         >
           {isLoading && feedback === 'dislike' ? (
@@ -133,7 +187,7 @@ const ImageCard = ({
         <Button 
           size="sm" 
           className={`transition-all-200 bg-apple-blue hover:bg-apple-blue-light text-white ${feedback === 'like' ? 'bg-green-600 hover:bg-green-700' : ''}`}
-          disabled={isLoading || isCompleted}
+          disabled={isLoading || isCompleted || !imageUrl}
           onClick={() => handleFeedback('like')}
         >
           {isLoading && feedback === 'like' ? (
