@@ -42,7 +42,8 @@ class StyleApiClient {
     this.preferenceId = localStorage.getItem("style_preference_id");
     
     // The iteration in local storage represents the current iteration we're on
-    this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
+    const storedIteration = localStorage.getItem("style_current_iteration");
+    this.currentIteration = storedIteration ? parseInt(storedIteration) : 0;
     console.log(`StyleApiClient initialized with iteration: ${this.currentIteration}`);
   }
 
@@ -100,7 +101,8 @@ class StyleApiClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Authentication failed: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`Authentication failed: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
       const data: AuthResponse = await response.json();
@@ -128,8 +130,19 @@ class StyleApiClient {
         };
       }
       
-      // Calculate the next iteration number
+      // Calculate the next iteration number (from 1-30)
+      // For first call (iteration 0), we should request iteration 1
       const nextIteration = this.currentIteration === 0 ? 1 : this.currentIteration + 1;
+      
+      // Make sure we're not exceeding the limit
+      if (nextIteration > 30) {
+        console.log(`Invalid iteration number: ${nextIteration}, max is 30`);
+        return {
+          image_url: "",
+          iteration: 30,
+          completed: true
+        };
+      }
       
       // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
@@ -144,6 +157,8 @@ class StyleApiClient {
         requestBody.style = style;
         requestBody.image_key = imageKey;
       }
+      
+      console.log(`Making API request to ${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`);
       
       // Call the API with the next iteration number
       try {
@@ -170,6 +185,11 @@ class StyleApiClient {
               iteration: 30,
               completed: true
             };
+          } else if (errorData.error === "Invalid iteration ID") {
+            console.log("Invalid iteration ID - resetting to iteration 1");
+            // Reset to iteration 1 and try again
+            this.setCurrentIteration(0);
+            return this.submitFeedbackAndGetNextImage(feedback, style, imageKey);
           }
           throw new Error(`Failed to submit feedback: ${response.status} - ${errorData.error || 'Unknown error'}`);
         }

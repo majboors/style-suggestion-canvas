@@ -60,6 +60,12 @@ const ImageCard = ({
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
     if (isLoading) return; // Prevent multiple submissions while loading
+    if (!imageUrl) {
+      toast.error("No image to rate", {
+        description: "Please load an image first."
+      });
+      return;
+    }
     
     try {
       setIsLoading(true);
@@ -174,6 +180,11 @@ const ImageCard = ({
             alt="Style suggestion" 
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
             onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              toast.error("Failed to load image", {
+                description: "Please try refreshing the page."
+              });
+            }}
           />
         )}
         
