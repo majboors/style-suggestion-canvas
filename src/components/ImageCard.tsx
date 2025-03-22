@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,17 +24,15 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
       setIsLoading(true);
       setFeedback(type);
       
-      await styleApiClient.submitFeedbackAndGetNextImage(type);
+      const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
       
       toast.success(`You ${type}d this style`, {
         description: "Your preferences have been updated.",
       });
       
-      // Slightly longer delay to ensure the server has time to process 
-      // the feedback before profile is loaded
       setTimeout(() => {
         onFeedbackSubmitted();
-      }, 1000);
+      }, 1500);
       
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);

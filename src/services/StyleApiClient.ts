@@ -38,8 +38,11 @@ class StyleApiClient {
     this.apiBaseUrl = baseUrl;
     this.aiId = localStorage.getItem("style_ai_id");
     this.preferenceId = localStorage.getItem("style_preference_id");
-    // Start at iteration 0, so first call will be iteration 1
+    
+    // The iteration in local storage represents the LAST COMPLETED iteration
+    // We'll start at 0 (or stored value) so the first API call will be iteration + 1
     this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
+    console.log(`StyleApiClient initialized with iteration: ${this.currentIteration}`);
   }
 
   get isAuthenticated(): boolean {
@@ -53,6 +56,7 @@ class StyleApiClient {
     localStorage.setItem("style_ai_id", aiId);
     localStorage.setItem("style_preference_id", preferenceId);
     localStorage.setItem("style_current_iteration", "0");
+    console.log("Session data set, iteration reset to 0");
   }
 
   clearSessionData() {
@@ -62,6 +66,7 @@ class StyleApiClient {
     localStorage.removeItem("style_ai_id");
     localStorage.removeItem("style_preference_id");
     localStorage.removeItem("style_current_iteration");
+    console.log("Session data cleared");
   }
 
   getAiId(): string | null {
@@ -79,6 +84,7 @@ class StyleApiClient {
   setCurrentIteration(iteration: number) {
     this.currentIteration = iteration;
     localStorage.setItem("style_current_iteration", this.currentIteration.toString());
+    console.log(`Current iteration set to: ${this.currentIteration}`);
   }
 
   async authenticate(accessId: string, gender: string): Promise<AuthResponse> {
@@ -112,7 +118,6 @@ class StyleApiClient {
 
     try {
       // Calculate the next iteration (current + 1)
-      // This makes iteration start at 1 for new sessions
       const nextIteration = this.currentIteration + 1;
       
       // Default to dislike if no feedback provided (for first call)
@@ -120,6 +125,7 @@ class StyleApiClient {
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
+      // Make the API call for the NEXT iteration (current + 1)
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
         {
@@ -134,15 +140,15 @@ class StyleApiClient {
 
       if (!response.ok) {
         const errorResponse = await response.json();
+        console.error(`API error ${response.status}:`, errorResponse);
         throw new Error(`Failed to submit feedback: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
       const data: IterationResponse = await response.json();
+      console.log(`Response from API:`, data);
       
-      // Store the CURRENT iteration we just completed
+      // Update to the iteration we just completed
       this.setCurrentIteration(data.iteration);
-      
-      console.log(`Current iteration set to: ${this.currentIteration}`);
       
       return data;
     } catch (error) {
@@ -187,7 +193,7 @@ class StyleApiClient {
 
     try {
       // Add delay to ensure API has time to process recent feedback
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/profile`,
@@ -239,3 +245,4 @@ class StyleApiClient {
 
 const styleApiClient = new StyleApiClient();
 export default styleApiClient;
+
