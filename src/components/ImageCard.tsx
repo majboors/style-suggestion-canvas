@@ -28,7 +28,9 @@ const ImageCard = ({
   useEffect(() => {
     // Reset image loaded state when URL changes
     setImageLoaded(false);
-  }, [imageUrl]);
+    // Reset feedback state when iteration changes
+    setFeedback(null);
+  }, [imageUrl, iteration]);
 
   useEffect(() => {
     // Auto-save profile when iterations are completed
@@ -49,7 +51,7 @@ const ImageCard = ({
   }, [isCompleted, autoSaveOnCompletion]);
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
-    if (feedback || isLoading) return; // Prevent multiple submissions
+    if (isLoading) return; // Prevent multiple submissions while loading
     
     try {
       setIsLoading(true);
@@ -117,7 +119,7 @@ const ImageCard = ({
           variant="outline" 
           size="sm" 
           className={`transition-all-200 ${feedback === 'dislike' ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
-          disabled={isLoading || !!feedback || isCompleted}
+          disabled={isLoading || isCompleted}
           onClick={() => handleFeedback('dislike')}
         >
           {isLoading && feedback === 'dislike' ? (
@@ -131,7 +133,7 @@ const ImageCard = ({
         <Button 
           size="sm" 
           className={`transition-all-200 bg-apple-blue hover:bg-apple-blue-light text-white ${feedback === 'like' ? 'bg-green-600 hover:bg-green-700' : ''}`}
-          disabled={isLoading || !!feedback || isCompleted}
+          disabled={isLoading || isCompleted}
           onClick={() => handleFeedback('like')}
         >
           {isLoading && feedback === 'like' ? (

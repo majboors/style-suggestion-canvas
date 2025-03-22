@@ -260,12 +260,10 @@ const StyleAPI = () => {
       setImageUrl(newImageUrl);
       setCurrentIteration(newIteration);
       setIsCompleted(newIteration >= 30);
-      
-      setTimeout(() => {
-        loadProfile();
-      }, 300);
     } else {
-      getFirstSuggestion();
+      if (!imageUrl) {
+        getFirstSuggestion();
+      }
     }
   };
   
