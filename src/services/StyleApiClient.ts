@@ -1,3 +1,4 @@
+
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -37,6 +38,7 @@ class StyleApiClient {
     this.apiBaseUrl = baseUrl;
     this.aiId = localStorage.getItem("style_ai_id");
     this.preferenceId = localStorage.getItem("style_preference_id");
+    // Start at iteration 0, so first call will be iteration 1
     this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
   }
 
@@ -47,7 +49,7 @@ class StyleApiClient {
   setSessionData(aiId: string, preferenceId: string) {
     this.aiId = aiId;
     this.preferenceId = preferenceId;
-    this.currentIteration = 0;
+    this.currentIteration = 0; // Start at 0 so first iteration is 1
     localStorage.setItem("style_ai_id", aiId);
     localStorage.setItem("style_preference_id", preferenceId);
     localStorage.setItem("style_current_iteration", "0");
@@ -109,8 +111,11 @@ class StyleApiClient {
     }
 
     try {
+      // Calculate the next iteration (current + 1)
+      // This makes iteration start at 1 for new sessions
       const nextIteration = this.currentIteration + 1;
       
+      // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
@@ -134,6 +139,7 @@ class StyleApiClient {
 
       const data: IterationResponse = await response.json();
       
+      // Store the CURRENT iteration we just completed
       this.setCurrentIteration(data.iteration);
       
       console.log(`Current iteration set to: ${this.currentIteration}`);
@@ -180,6 +186,7 @@ class StyleApiClient {
     }
 
     try {
+      // Add delay to ensure API has time to process recent feedback
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const response = await fetch(
