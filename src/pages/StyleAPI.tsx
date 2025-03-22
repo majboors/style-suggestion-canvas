@@ -26,7 +26,11 @@ import {
   BarChart4, 
   Loader2, 
   RefreshCw, 
-  LogOut 
+  LogOut,
+  Save,
+  Copy,
+  Plus,
+  HelpCircle
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -52,6 +56,10 @@ const StyleAPI = () => {
   const [gender, setGender] = useState("women");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
+  const [newPreferenceId, setNewPreferenceId] = useState("");
+  const [newAiId, setNewAiId] = useState("");
+  const [isCreatingPreference, setIsCreatingPreference] = useState(false);
+  
   const [imageUrl, setImageUrl] = useState("");
   const [currentIteration, setCurrentIteration] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -60,6 +68,7 @@ const StyleAPI = () => {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   useEffect(() => {
     if (styleApiClient.isAuthenticated) {
@@ -92,6 +101,38 @@ const StyleAPI = () => {
     }
   };
   
+  const handleCreatePreference = async () => {
+    if (!accessId) {
+      toast.error("Access ID is required");
+      return;
+    }
+    
+    try {
+      setIsCreatingPreference(true);
+      const response = await styleApiClient.authenticate(accessId, gender);
+      setNewPreferenceId(response.preference_id);
+      setNewAiId(response.ai_id);
+      
+      toast.success("New preference created", {
+        description: "Use this preference ID for future iterations.",
+      });
+      
+      getFirstSuggestion();
+    } catch (error) {
+      console.error("Error creating preference:", error);
+      toast.error("Failed to create preference", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsCreatingPreference(false);
+    }
+  };
+  
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
+  
   const handleLogout = () => {
     styleApiClient.clearSessionData();
     setImageUrl("");
@@ -99,6 +140,8 @@ const StyleAPI = () => {
     setIsCompleted(false);
     setPreferences(null);
     setSelectionHistory([]);
+    setNewPreferenceId("");
+    setNewAiId("");
     toast.info("Logged out successfully", {
       description: "Your session has been cleared.",
     });
@@ -146,6 +189,7 @@ const StyleAPI = () => {
     }
     
     try {
+      setIsSavingProfile(true);
       const response = await styleApiClient.saveProfile();
       toast.success(response.message || "Profile saved successfully");
     } catch (error) {
@@ -153,6 +197,8 @@ const StyleAPI = () => {
       toast.error("Failed to save profile", {
         description: "Please try again later.",
       });
+    } finally {
+      setIsSavingProfile(false);
     }
   };
   
@@ -211,7 +257,7 @@ const StyleAPI = () => {
   
   const handleFeedbackSubmitted = () => {
     loadProfile();
-    setCurrentIteration(styleApiClient.getCurrentIteration() - 1);
+    getFirstSuggestion();
   };
   
   return (
@@ -397,22 +443,146 @@ const StyleAPI = () => {
               </Card>
             ) : (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                   <h2 className="text-2xl font-medium">Style Suggestions</h2>
-                  <Button
-                    variant="outline"
-                    onClick={handleNextSuggestion}
-                    disabled={isLoadingSuggestion || isCompleted}
-                    className="transition-all-200"
-                  >
-                    {isLoadingSuggestion ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                    <span className="ml-2">Skip & Next</span>
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={loadProfile}
+                      className="transition-all-200"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                      Refresh Data
+                    </Button>
+                    <Button
+                      onClick={handleSaveProfile}
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={isSavingProfile || isLoadingSuggestion}
+                    >
+                      {isSavingProfile ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-1" />
+                      )}
+                      Save Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleNextSuggestion}
+                      disabled={isLoadingSuggestion || isCompleted}
+                      className="transition-all-200"
+                    >
+                      {isLoadingSuggestion ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      <span className="ml-2">Skip & Next</span>
+                    </Button>
+                  </div>
                 </div>
+                
+                <Card className="glass-effect">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Preference Information</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreatePreference}
+                        disabled={isCreatingPreference}
+                      >
+                        {isCreatingPreference ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-1" />
+                        )}
+                        Create New
+                      </Button>
+                    </CardTitle>
+                    <CardDescription>Your current preference ID and session details</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center">
+                          Preference ID 
+                          <HelpCircle className="h-4 w-4 ml-1 text-muted-foreground" />
+                        </Label>
+                        <div className="flex">
+                          <Input 
+                            value={styleApiClient.getPreferenceId() || newPreferenceId || "Not authenticated"} 
+                            readOnly 
+                            className="font-mono text-sm bg-muted"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="ml-2"
+                            onClick={() => copyToClipboard(
+                              styleApiClient.getPreferenceId() || newPreferenceId || "", 
+                              "Preference ID"
+                            )}
+                            disabled={!styleApiClient.getPreferenceId() && !newPreferenceId}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="flex items-center">
+                          AI ID
+                          <HelpCircle className="h-4 w-4 ml-1 text-muted-foreground" />
+                        </Label>
+                        <div className="flex">
+                          <Input 
+                            value={styleApiClient.getAiId() || newAiId || "Not authenticated"} 
+                            readOnly 
+                            className="font-mono text-sm bg-muted"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="ml-2"
+                            onClick={() => copyToClipboard(
+                              styleApiClient.getAiId() || newAiId || "", 
+                              "AI ID"
+                            )}
+                            disabled={!styleApiClient.getAiId() && !newAiId}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Access ID for New Preference</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          value={accessId}
+                          onChange={(e) => setAccessId(e.target.value)}
+                          placeholder="Enter access ID for new preference"
+                          disabled={isCreatingPreference}
+                        />
+                        <Select 
+                          value={gender} 
+                          onValueChange={setGender}
+                          disabled={isCreatingPreference}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="women">Women</SelectItem>
+                            <SelectItem value="men">Men</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 
                 <Separator />
                 
@@ -478,6 +648,34 @@ const StyleAPI = () => {
                       </Button>
                     </div>
                   </div>
+                )}
+                
+                {preferences && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Current Preferences Summary</CardTitle>
+                      <CardDescription>Quick overview of your style profile</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <PreferenceChart 
+                        preferences={preferences} 
+                        isLoading={isLoadingProfile} 
+                      />
+                    </CardContent>
+                    <CardFooter className="justify-end">
+                      <Button
+                        onClick={() => {
+                          const profileTab = document.querySelector('[data-value="profile"]');
+                          if (profileTab) {
+                            (profileTab as HTMLElement).click();
+                          }
+                        }}
+                        variant="outline"
+                      >
+                        View Full Profile
+                      </Button>
+                    </CardFooter>
+                  </Card>
                 )}
               </div>
             )}
