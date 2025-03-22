@@ -44,23 +44,27 @@ const ImageCard = ({
   }, [isCompleted, autoSaveOnCompletion]);
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
-    if (feedback) return; // Prevent multiple submissions
+    if (feedback || isLoading) return; // Prevent multiple submissions
     
     try {
       setIsLoading(true);
       setFeedback(type);
       
-      const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
+      // Only make API call if not already completed
+      if (!isCompleted) {
+        await styleApiClient.submitFeedbackAndGetNextImage(type);
+        
+        toast.success(`You ${type}d this style`, {
+          description: "Your preferences have been updated.",
+        });
+      }
       
-      toast.success(`You ${type}d this style`, {
-        description: "Your preferences have been updated.",
-      });
-      
-      // Add a small delay before moving to the next image
-      // This ensures the API has time to process the feedback
+      // Add a delay before moving to the next image to ensure proper UI feedback
       setTimeout(() => {
         onFeedbackSubmitted();
-      }, 500);
+        // Reset feedback state after handling
+        setFeedback(null);
+      }, 750);
       
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);

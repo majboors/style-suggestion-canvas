@@ -1,3 +1,4 @@
+
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -38,7 +39,7 @@ class StyleApiClient {
     this.aiId = localStorage.getItem("style_ai_id");
     this.preferenceId = localStorage.getItem("style_preference_id");
     
-    // The iteration in local storage represents the CURRENT iteration (not the next one)
+    // The iteration in local storage represents the current iteration we're on
     this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
     console.log(`StyleApiClient initialized with iteration: ${this.currentIteration}`);
   }
@@ -115,16 +116,33 @@ class StyleApiClient {
     }
 
     try {
-      // For the very first image (iteration 0), we need to get iteration 1
-      // For all subsequent iterations, we use the current iteration + 1
-      const nextIteration = this.currentIteration === 0 ? 1 : this.currentIteration + 1;
+      // Calculate the next iteration - this is critical for the API to work correctly
+      // First image/call should be iteration 1
+      let nextIteration;
+      
+      if (this.currentIteration === 0) {
+        // Initial call - start with iteration 1
+        nextIteration = 1;
+      } else {
+        // For subsequent calls, use exactly the iteration we're going to (current + 1)
+        nextIteration = this.currentIteration + 1;
+      }
+      
+      // If we're already at iteration 30 or more, we shouldn't make additional calls
+      if (this.currentIteration >= 30) {
+        return {
+          image_url: "",
+          iteration: this.currentIteration,
+          completed: true
+        };
+      }
       
       // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
-      // Call the API with the next iteration number
+      // Call the API with the appropriate iteration number
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
         {
@@ -146,7 +164,7 @@ class StyleApiClient {
       const data: IterationResponse = await response.json();
       console.log(`Response from API:`, data);
       
-      // Update to the iteration we just received from the API
+      // Update our current iteration to what the API returned
       this.setCurrentIteration(data.iteration);
       
       return data;
