@@ -1,4 +1,3 @@
-
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -38,7 +37,7 @@ class StyleApiClient {
     this.apiBaseUrl = baseUrl;
     this.aiId = localStorage.getItem("style_ai_id");
     this.preferenceId = localStorage.getItem("style_preference_id");
-    this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "1");
+    this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
   }
 
   get isAuthenticated(): boolean {
@@ -48,16 +47,16 @@ class StyleApiClient {
   setSessionData(aiId: string, preferenceId: string) {
     this.aiId = aiId;
     this.preferenceId = preferenceId;
-    this.currentIteration = 1;
+    this.currentIteration = 0;
     localStorage.setItem("style_ai_id", aiId);
     localStorage.setItem("style_preference_id", preferenceId);
-    localStorage.setItem("style_current_iteration", "1");
+    localStorage.setItem("style_current_iteration", "0");
   }
 
   clearSessionData() {
     this.aiId = null;
     this.preferenceId = null;
-    this.currentIteration = 1;
+    this.currentIteration = 0;
     localStorage.removeItem("style_ai_id");
     localStorage.removeItem("style_preference_id");
     localStorage.removeItem("style_current_iteration");
@@ -110,23 +109,14 @@ class StyleApiClient {
     }
 
     try {
-      let iterationId: number;
-      let feedbackValue: "like" | "dislike";
+      const nextIteration = this.currentIteration + 1;
       
-      if (!feedback) {
-        // For the first image request, use iteration 1 with a default feedback
-        iterationId = 1;
-        feedbackValue = "dislike";
-      } else {
-        // For subsequent iterations, use the current stored iteration
-        iterationId = this.currentIteration;
-        feedbackValue = feedback;
-      }
+      const feedbackValue = feedback || "dislike";
       
-      console.log(`Submitting feedback for iteration ${iterationId}: ${feedbackValue}`);
+      console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
       const response = await fetch(
-        `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${iterationId}`,
+        `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
         {
           method: "POST",
           headers: {
@@ -144,12 +134,9 @@ class StyleApiClient {
 
       const data: IterationResponse = await response.json();
       
-      // Update current iteration for next request
-      // The API returns the current iteration, so we need to store it for future requests
-      // We increment by 1 since the next request will be for the next iteration
-      this.setCurrentIteration(data.iteration + 1);
+      this.setCurrentIteration(data.iteration);
       
-      console.log(`Next iteration will be: ${this.currentIteration}`);
+      console.log(`Current iteration set to: ${this.currentIteration}`);
       
       return data;
     } catch (error) {
@@ -193,9 +180,7 @@ class StyleApiClient {
     }
 
     try {
-      // Small delay to allow the API time to update the profile after a like/dislike
-      // This addresses race conditions where getProfile is called right after a feedback submission
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/profile`,
@@ -209,8 +194,6 @@ class StyleApiClient {
 
       if (!response.ok) {
         if (response.status === 400) {
-          // Return a default empty profile structure for new users
-          // This is common early in the session before enough feedback is provided
           console.log("Profile not available yet. Returning default empty profile.");
           return {
             top_styles: {},
@@ -226,7 +209,6 @@ class StyleApiClient {
     } catch (error) {
       console.error("Error getting profile:", error);
       
-      // Return empty default profile on error to prevent UI crashes
       return {
         top_styles: {},
         selection_history: []
@@ -248,6 +230,5 @@ class StyleApiClient {
   }
 }
 
-// Create and export a singleton instance
 const styleApiClient = new StyleApiClient();
 export default styleApiClient;

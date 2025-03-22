@@ -31,11 +31,11 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
         description: "Your preferences have been updated.",
       });
       
-      // Wait a bit for the API to process before getting the profile
+      // Short delay before notifying parent to update profile
+      // This helps ensure the server has time to process the feedback
       setTimeout(() => {
-        // After successful feedback, notify parent component
         onFeedbackSubmitted();
-      }, 500);
+      }, 800);
       
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);
