@@ -1,4 +1,3 @@
-
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -127,15 +126,7 @@ class StyleApiClient {
       }
       
       // Calculate the next iteration number
-      let nextIteration;
-      
-      if (this.currentIteration === 0) {
-        // Initial call - start with iteration 1
-        nextIteration = 1;
-      } else {
-        // For subsequent calls, increment by exactly 1
-        nextIteration = this.currentIteration + 1;
-      }
+      const nextIteration = this.currentIteration === 0 ? 1 : this.currentIteration + 1;
       
       // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
@@ -164,15 +155,15 @@ class StyleApiClient {
       const data: IterationResponse = await response.json();
       console.log(`Response from API:`, data);
       
-      // Strictly update to exactly what the API returned
+      // Update our current iteration to what the API returned
       this.setCurrentIteration(data.iteration);
       
       // Set completed flag if we've reached 30 iterations
-      if (data.iteration >= 30) {
-        data.completed = true;
-      }
-      
-      return data;
+      const isCompleted = data.iteration >= 30;
+      return {
+        ...data,
+        completed: isCompleted
+      };
     } catch (error) {
       console.error("Error submitting feedback or getting next image:", error);
       throw error;

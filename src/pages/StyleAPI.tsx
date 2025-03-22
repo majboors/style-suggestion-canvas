@@ -255,17 +255,18 @@ const StyleAPI = () => {
     }
   };
   
-  const handleFeedbackSubmitted = () => {
-    const currentIterationFromClient = styleApiClient.getCurrentIteration();
-    setCurrentIteration(currentIterationFromClient);
-    
-    setImageUrl("");
-    setTimeout(() => {
-      loadProfile();
-      if (currentIterationFromClient >= 30) {
-        setIsCompleted(true);
-      }
-    }, 100);
+  const handleFeedbackSubmitted = (newImageUrl?: string, newIteration?: number) => {
+    if (newImageUrl && newIteration) {
+      setImageUrl(newImageUrl);
+      setCurrentIteration(newIteration);
+      setIsCompleted(newIteration >= 30);
+      
+      setTimeout(() => {
+        loadProfile();
+      }, 300);
+    } else {
+      getFirstSuggestion();
+    }
   };
   
   return (
@@ -648,6 +649,13 @@ const StyleAPI = () => {
                         </Button>
                       </div>
                     )}
+                  </div>
+                ) : isLoadingSuggestion ? (
+                  <div className="py-12 flex justify-center">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-apple-blue" />
+                      <p>Loading suggestion...</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="py-12 flex justify-center">

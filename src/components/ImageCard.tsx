@@ -10,7 +10,7 @@ interface ImageCardProps {
   imageUrl: string;
   iteration: number;
   isCompleted: boolean;
-  onFeedbackSubmitted: () => void;
+  onFeedbackSubmitted: (newImageUrl?: string, newIteration?: number) => void;
   autoSaveOnCompletion?: boolean;
 }
 
@@ -24,6 +24,11 @@ const ImageCard = ({
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
+
+  useEffect(() => {
+    // Reset image loaded state when URL changes
+    setImageLoaded(false);
+  }, [imageUrl]);
 
   useEffect(() => {
     // Auto-save profile when iterations are completed
@@ -52,27 +57,31 @@ const ImageCard = ({
       
       // Only make API call if not already completed
       if (!isCompleted) {
-        // This is the only place where we submit feedback and get next image
-        await styleApiClient.submitFeedbackAndGetNextImage(type);
+        const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
         
         toast.success(`You ${type}d this style`, {
           description: "Your preferences have been updated.",
         });
+        
+        // Wait a bit before notifying parent with the new image data
+        setTimeout(() => {
+          onFeedbackSubmitted(response.image_url, response.iteration);
+        }, 750);
+      } else {
+        // Still notify parent for completion case
+        setTimeout(() => {
+          onFeedbackSubmitted();
+        }, 750);
       }
-      
-      // Add a delay before notifying parent component
-      setTimeout(() => {
-        onFeedbackSubmitted();
-        // Reset feedback state after handling
-        setFeedback(null);
-      }, 750);
-      
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);
       setFeedback(null);
       toast.error(`Failed to submit feedback`, {
         description: "Please try again later.",
       });
+      
+      // Notify parent of error
+      onFeedbackSubmitted();
     } finally {
       setIsLoading(false);
     }
