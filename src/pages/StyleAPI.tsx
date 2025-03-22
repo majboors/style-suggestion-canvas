@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -497,7 +498,7 @@ const StyleAPI = () => {
                         ) : (
                           <Plus className="h-4 w-4 mr-1" />
                         )}
-                        Create New
+                        Create New Preference
                       </Button>
                     </CardTitle>
                     <CardDescription>Your current preference ID and session details</CardDescription>
@@ -558,7 +559,7 @@ const StyleAPI = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Access ID for New Preference</Label>
+                      <Label>Create New Preference</Label>
                       <div className="flex space-x-2">
                         <Input
                           value={accessId}
@@ -579,6 +580,18 @@ const StyleAPI = () => {
                             <SelectItem value="men">Men</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button
+                          onClick={handleCreatePreference}
+                          className="bg-apple-blue hover:bg-apple-blue-light whitespace-nowrap"
+                          disabled={isCreatingPreference || !accessId}
+                        >
+                          {isCreatingPreference ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Plus className="h-4 w-4 mr-1" />
+                          )}
+                          Create
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -615,12 +628,13 @@ const StyleAPI = () => {
                       iteration={currentIteration}
                       isCompleted={isCompleted}
                       onFeedbackSubmitted={handleFeedbackSubmitted}
+                      autoSaveOnCompletion={true}
                     />
                     
                     {isCompleted && (
                       <div className="mt-6 text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                         <h3 className="font-medium text-green-800">All iterations completed!</h3>
-                        <p className="text-green-600 mt-1">Check the Profile tab to see your style preferences.</p>
+                        <p className="text-green-600 mt-1">Your profile has been automatically saved.</p>
                         <Button
                           onClick={() => {
                             const profileTab = document.querySelector('[data-value="profile"]');

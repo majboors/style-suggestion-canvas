@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Loader2 } from "lucide-react";
@@ -11,12 +11,37 @@ interface ImageCardProps {
   iteration: number;
   isCompleted: boolean;
   onFeedbackSubmitted: () => void;
+  autoSaveOnCompletion?: boolean;
 }
 
-const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: ImageCardProps) => {
+const ImageCard = ({ 
+  imageUrl, 
+  iteration, 
+  isCompleted, 
+  onFeedbackSubmitted,
+  autoSaveOnCompletion = true
+}: ImageCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
+
+  useEffect(() => {
+    // Auto-save profile when iterations are completed
+    if (isCompleted && autoSaveOnCompletion) {
+      const saveProfile = async () => {
+        try {
+          await styleApiClient.saveProfile();
+          toast.success("Profile automatically saved", {
+            description: "Your style preferences have been saved.",
+          });
+        } catch (error) {
+          console.error("Error auto-saving profile:", error);
+        }
+      };
+      
+      saveProfile();
+    }
+  }, [isCompleted, autoSaveOnCompletion]);
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
     if (feedback) return; // Prevent multiple submissions
@@ -31,9 +56,8 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
         description: "Your preferences have been updated.",
       });
       
-      setTimeout(() => {
-        onFeedbackSubmitted();
-      }, 1500);
+      // Immediately call onFeedbackSubmitted to progress to next iteration
+      onFeedbackSubmitted();
       
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);
