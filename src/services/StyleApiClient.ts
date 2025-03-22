@@ -75,8 +75,8 @@ class StyleApiClient {
     return this.currentIteration;
   }
 
-  incrementIteration() {
-    this.currentIteration += 1;
+  setCurrentIteration(iteration: number) {
+    this.currentIteration = iteration;
     localStorage.setItem("style_current_iteration", this.currentIteration.toString());
   }
 
@@ -110,60 +110,37 @@ class StyleApiClient {
     }
 
     try {
-      // If this is the first iteration or we're getting the first image
-      if (!feedback) {
-        // For the first iteration, we'll use a default feedback of "dislike"
-        // This is because the API requires a valid feedback parameter
-        const firstIterationId = 1;
-        const response = await fetch(
-          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${firstIterationId}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "AI-ID": this.aiId,
-            },
-            body: JSON.stringify({ feedback: "dislike" }), // Changed from null to "dislike"
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to get first image: ${response.status}`);
+      // For first image or subsequent iterations
+      const iterationId = feedback ? this.currentIteration : 1;
+      const feedbackValue = feedback || "dislike"; // Always provide valid feedback value
+      
+      console.log(`Submitting feedback for iteration ${iterationId}: ${feedbackValue}`);
+      
+      const response = await fetch(
+        `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${iterationId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "AI-ID": this.aiId,
+          },
+          body: JSON.stringify({ feedback: feedbackValue }),
         }
+      );
 
-        const data: IterationResponse = await response.json();
-        
-        // Update current iteration
-        this.currentIteration = data.iteration + 1;
-        localStorage.setItem("style_current_iteration", this.currentIteration.toString());
-        
-        return data;
-      } else {
-        // For subsequent iterations, use the provided feedback
-        const response = await fetch(
-          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${this.currentIteration}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "AI-ID": this.aiId,
-            },
-            body: JSON.stringify({ feedback }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to submit feedback: ${response.status}`);
-        }
-
-        const data: IterationResponse = await response.json();
-        
-        // Increment iteration for next time
-        this.currentIteration = data.iteration + 1;
-        localStorage.setItem("style_current_iteration", this.currentIteration.toString());
-        
-        return data;
+      if (!response.ok) {
+        throw new Error(`Failed to submit feedback: ${response.status}`);
       }
+
+      const data: IterationResponse = await response.json();
+      
+      // Update current iteration for next request
+      // The API returns the current iteration, so we need to use the next one for future requests
+      this.setCurrentIteration(data.iteration + 1);
+      
+      console.log(`Next iteration will be: ${this.currentIteration}`);
+      
+      return data;
     } catch (error) {
       console.error("Error submitting feedback or getting next image:", error);
       throw error;

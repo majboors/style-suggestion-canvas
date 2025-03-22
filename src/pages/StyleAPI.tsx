@@ -104,6 +104,58 @@ const StyleAPI = () => {
     });
   };
   
+  const loadProfile = async () => {
+    if (!styleApiClient.isAuthenticated) return;
+    
+    try {
+      setIsLoadingProfile(true);
+      const profile = await styleApiClient.getProfile();
+      
+      if (profile.top_styles) {
+        const typedPreferences: Preferences = {
+          Classic: profile.top_styles.Classic || 0,
+          Creative: profile.top_styles.Creative || 0,
+          Fashionista: profile.top_styles.Fashionista || 0,
+          Sophisticated: profile.top_styles.Sophisticated || 0,
+          Romantic: profile.top_styles.Romantic || 0,
+          Natural: profile.top_styles.Natural || 0,
+          Modern: profile.top_styles.Modern || 0,
+          Glam: profile.top_styles.Glam || 0,
+          Streetstyle: profile.top_styles.Streetstyle || 0
+        };
+        setPreferences(typedPreferences);
+      }
+      
+      setSelectionHistory(profile.selection_history);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      if (currentIteration > 0) {
+        toast.error("Failed to load profile", {
+          description: "Please try again later.",
+        });
+      }
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+  
+  const handleSaveProfile = async () => {
+    if (!styleApiClient.isAuthenticated) {
+      toast.error("Please authenticate first");
+      return;
+    }
+    
+    try {
+      const response = await styleApiClient.saveProfile();
+      toast.success(response.message || "Profile saved successfully");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile", {
+        description: "Please try again later.",
+      });
+    }
+  };
+  
   const getFirstSuggestion = async () => {
     if (!styleApiClient.isAuthenticated) {
       toast.error("Please authenticate first");
@@ -154,56 +206,6 @@ const StyleAPI = () => {
       });
     } finally {
       setIsLoadingSuggestion(false);
-    }
-  };
-  
-  const loadProfile = async () => {
-    if (!styleApiClient.isAuthenticated) return;
-    
-    try {
-      setIsLoadingProfile(true);
-      const profile = await styleApiClient.getProfile();
-      
-      if (profile.top_styles) {
-        const typedPreferences: Preferences = {
-          Classic: profile.top_styles.Classic || 0,
-          Creative: profile.top_styles.Creative || 0,
-          Fashionista: profile.top_styles.Fashionista || 0,
-          Sophisticated: profile.top_styles.Sophisticated || 0,
-          Romantic: profile.top_styles.Romantic || 0,
-          Natural: profile.top_styles.Natural || 0,
-          Modern: profile.top_styles.Modern || 0,
-          Glam: profile.top_styles.Glam || 0,
-          Streetstyle: profile.top_styles.Streetstyle || 0
-        };
-        setPreferences(typedPreferences);
-      }
-      
-      setSelectionHistory(profile.selection_history);
-    } catch (error) {
-      console.error("Error loading profile:", error);
-      toast.error("Failed to load profile", {
-        description: "Please try again later.",
-      });
-    } finally {
-      setIsLoadingProfile(false);
-    }
-  };
-  
-  const handleSaveProfile = async () => {
-    if (!styleApiClient.isAuthenticated) {
-      toast.error("Please authenticate first");
-      return;
-    }
-    
-    try {
-      const response = await styleApiClient.saveProfile();
-      toast.success(response.message || "Profile saved successfully");
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      toast.error("Failed to save profile", {
-        description: "Please try again later.",
-      });
     }
   };
   
