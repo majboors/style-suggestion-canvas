@@ -25,14 +25,18 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
       setIsLoading(true);
       setFeedback(type);
       
-      const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
+      await styleApiClient.submitFeedbackAndGetNextImage(type);
       
       toast.success(`You ${type}d this style`, {
         description: "Your preferences have been updated.",
       });
       
-      // After successful feedback, notify parent component
-      onFeedbackSubmitted();
+      // Wait a bit for the API to process before getting the profile
+      setTimeout(() => {
+        // After successful feedback, notify parent component
+        onFeedbackSubmitted();
+      }, 500);
+      
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);
       setFeedback(null);
@@ -77,7 +81,11 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
           disabled={isLoading || !!feedback || isCompleted}
           onClick={() => handleFeedback('dislike')}
         >
-          <ThumbsDown className="h-4 w-4 mr-1" />
+          {isLoading && feedback === 'dislike' ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <ThumbsDown className="h-4 w-4 mr-1" />
+          )}
           Dislike
         </Button>
         
@@ -87,7 +95,11 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
           disabled={isLoading || !!feedback || isCompleted}
           onClick={() => handleFeedback('like')}
         >
-          <ThumbsUp className="h-4 w-4 mr-1" />
+          {isLoading && feedback === 'like' ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <ThumbsUp className="h-4 w-4 mr-1" />
+          )}
           Like
         </Button>
       </div>

@@ -110,9 +110,18 @@ class StyleApiClient {
     }
 
     try {
-      // For first image or subsequent iterations
-      const iterationId = feedback ? this.currentIteration : 1;
-      const feedbackValue = feedback || "dislike"; // Always provide valid feedback value
+      let iterationId: number;
+      let feedbackValue: "like" | "dislike";
+      
+      if (!feedback) {
+        // For the first image request, use iteration 1 with a default feedback
+        iterationId = 1;
+        feedbackValue = "dislike";
+      } else {
+        // For subsequent iterations, use the current stored iteration
+        iterationId = this.currentIteration;
+        feedbackValue = feedback;
+      }
       
       console.log(`Submitting feedback for iteration ${iterationId}: ${feedbackValue}`);
       
@@ -129,13 +138,15 @@ class StyleApiClient {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to submit feedback: ${response.status}`);
+        const errorResponse = await response.json();
+        throw new Error(`Failed to submit feedback: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
       const data: IterationResponse = await response.json();
       
       // Update current iteration for next request
-      // The API returns the current iteration, so we need to use the next one for future requests
+      // The API returns the current iteration, so we need to store it for future requests
+      // We increment by 1 since the next request will be for the next iteration
       this.setCurrentIteration(data.iteration + 1);
       
       console.log(`Next iteration will be: ${this.currentIteration}`);
@@ -165,7 +176,8 @@ class StyleApiClient {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to save profile: ${response.status}`);
+        const errorResponse = await response.json();
+        throw new Error(`Failed to save profile: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
       return await response.json();
@@ -181,6 +193,10 @@ class StyleApiClient {
     }
 
     try {
+      // Small delay to allow the API time to update the profile after a like/dislike
+      // This addresses race conditions where getProfile is called right after a feedback submission
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/profile`,
         {
@@ -192,13 +208,29 @@ class StyleApiClient {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to get profile: ${response.status}`);
+        if (response.status === 400) {
+          // Return a default empty profile structure for new users
+          // This is common early in the session before enough feedback is provided
+          console.log("Profile not available yet. Returning default empty profile.");
+          return {
+            top_styles: {},
+            selection_history: []
+          };
+        }
+        
+        const errorResponse = await response.json();
+        throw new Error(`Failed to get profile: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
       return await response.json();
     } catch (error) {
       console.error("Error getting profile:", error);
-      throw error;
+      
+      // Return empty default profile on error to prevent UI crashes
+      return {
+        top_styles: {},
+        selection_history: []
+      };
     }
   }
 
