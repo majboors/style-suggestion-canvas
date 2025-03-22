@@ -69,6 +69,8 @@ const StyleAPI = () => {
   const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [rawProfileResponse, setRawProfileResponse] = useState<any>(null);
+  const [rawSaveResponse, setRawSaveResponse] = useState<any>(null);
   
   useEffect(() => {
     if (styleApiClient.isAuthenticated) {
@@ -154,6 +156,8 @@ const StyleAPI = () => {
       setIsLoadingProfile(true);
       const profile = await styleApiClient.getProfile();
       
+      setRawProfileResponse(profile);
+      
       if (profile.top_styles) {
         const typedPreferences: Preferences = {
           Classic: profile.top_styles.Classic || 0,
@@ -169,7 +173,7 @@ const StyleAPI = () => {
         setPreferences(typedPreferences);
       }
       
-      setSelectionHistory(profile.selection_history);
+      setSelectionHistory(profile.selection_history || []);
     } catch (error) {
       console.error("Error loading profile:", error);
       if (currentIteration > 0) {
@@ -191,7 +195,14 @@ const StyleAPI = () => {
     try {
       setIsSavingProfile(true);
       const response = await styleApiClient.saveProfile();
+      
+      setRawSaveResponse(response);
+      
       toast.success(response.message || "Profile saved successfully");
+      
+      setTimeout(() => {
+        loadProfile();
+      }, 1000);
     } catch (error) {
       console.error("Error saving profile:", error);
       toast.error("Failed to save profile", {
@@ -260,6 +271,10 @@ const StyleAPI = () => {
       setImageUrl(newImageUrl);
       setCurrentIteration(newIteration);
       setIsCompleted(newIteration >= 30);
+      
+      setTimeout(() => {
+        loadProfile();
+      }, 1000);
     } else {
       if (!imageUrl) {
         getFirstSuggestion();
@@ -742,8 +757,13 @@ const StyleAPI = () => {
                     <Button
                       onClick={handleSaveProfile}
                       className="bg-apple-blue hover:bg-apple-blue-light"
-                      disabled={isLoadingProfile}
+                      disabled={isLoadingProfile || isSavingProfile}
                     >
+                      {isSavingProfile ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-1" />
+                      )}
                       Save Profile
                     </Button>
                   </div>
@@ -753,36 +773,23 @@ const StyleAPI = () => {
                 
                 <PreferenceChart 
                   preferences={preferences} 
-                  isLoading={isLoadingProfile} 
+                  isLoading={isLoadingProfile}
+                  rawResponse={rawProfileResponse}
+                  selectionHistory={selectionHistory}
                 />
                 
-                {selectionHistory && selectionHistory.length > 0 && (
+                {rawSaveResponse && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Selection History</CardTitle>
-                      <CardDescription>Your style feedback history</CardDescription>
+                      <CardTitle>Profile Save Response</CardTitle>
+                      <CardDescription>Raw API response from saving your profile</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4 max-h-96 overflow-y-auto p-2">
-                        {selectionHistory.map((item, index) => (
-                          <div key={index} className="flex items-center space-x-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50">
-                            <div className="w-16 h-16 overflow-hidden rounded">
-                              <img src={item.image} alt={item.style} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium">{item.style}</div>
-                              <div className="text-sm text-gray-500">
-                                Score change: {item.score_change > 0 ? '+' : ''}{item.score_change}
-                              </div>
-                            </div>
-                            <div>
-                              <Badge variant={item.feedback === 'Like' ? 'default' : 'destructive'}>
-                                {item.feedback}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <ScrollArea className="h-32 rounded-md border">
+                        <pre className="p-4 text-xs font-mono whitespace-pre-wrap">
+                          {JSON.stringify(rawSaveResponse, null, 2)}
+                        </pre>
+                      </ScrollArea>
                     </CardContent>
                   </Card>
                 )}

@@ -192,7 +192,9 @@ class StyleApiClient {
         throw new Error(`Failed to save profile: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log("Save profile response:", data);
+      return data;
     } catch (error) {
       console.error("Error saving profile:", error);
       throw error;
@@ -231,7 +233,9 @@ class StyleApiClient {
         throw new Error(`Failed to get profile: ${response.status} - ${errorResponse.error || 'Unknown error'}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log("Get profile response:", data);
+      return data;
     } catch (error) {
       console.error("Error getting profile:", error);
       

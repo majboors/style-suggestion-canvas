@@ -11,6 +11,8 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Preferences {
   Classic: number;
@@ -27,9 +29,16 @@ interface Preferences {
 interface PreferenceChartProps {
   preferences: Preferences | null;
   isLoading: boolean;
+  rawResponse?: any;
+  selectionHistory?: any[];
 }
 
-const PreferenceChart = ({ preferences, isLoading }: PreferenceChartProps) => {
+const PreferenceChart = ({ 
+  preferences, 
+  isLoading, 
+  rawResponse,
+  selectionHistory = []
+}: PreferenceChartProps) => {
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
@@ -98,6 +107,64 @@ const PreferenceChart = ({ preferences, isLoading }: PreferenceChartProps) => {
             <p>No preference data available yet</p>
             <p className="text-sm mt-2">Like or dislike more suggestions to build your profile</p>
           </div>
+        )}
+
+        {/* Raw Response Data Section */}
+        {rawResponse && (
+          <Accordion type="single" collapsible className="mt-6 border rounded-md">
+            <AccordionItem value="raw-response">
+              <AccordionTrigger className="px-4">
+                Raw API Response Data
+              </AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="h-72 rounded-md border p-4">
+                  <pre className="text-xs font-mono whitespace-pre-wrap overflow-x-auto">
+                    {JSON.stringify(rawResponse, null, 2)}
+                  </pre>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+
+        {/* Selection History Raw Data Section */}
+        {selectionHistory && selectionHistory.length > 0 && (
+          <Accordion type="single" collapsible className="mt-4 border rounded-md">
+            <AccordionItem value="selection-history">
+              <AccordionTrigger className="px-4">
+                Selection History Details
+              </AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="h-72 rounded-md border">
+                  <div className="p-4 space-y-4">
+                    {selectionHistory.map((selection, index) => (
+                      <div key={index} className="border-b pb-3 last:border-b-0 last:pb-0">
+                        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                          <div className="font-semibold">Style:</div>
+                          <div>{selection.style}</div>
+                          
+                          <div className="font-semibold">Feedback:</div>
+                          <div>{selection.feedback}</div>
+                          
+                          <div className="font-semibold">Score Change:</div>
+                          <div>{selection.score_change}</div>
+                          
+                          <div className="font-semibold">Current Score:</div>
+                          <div>{selection.current_score}</div>
+                          
+                          <div className="font-semibold">Timestamp:</div>
+                          <div>{new Date(selection.timestamp * 1000).toLocaleString()}</div>
+                          
+                          <div className="font-semibold">Image URL:</div>
+                          <div className="truncate">{selection.image}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
       </CardContent>
     </Card>
