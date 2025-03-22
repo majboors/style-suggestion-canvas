@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Link } from 'react-router-dom';
@@ -213,7 +212,7 @@ const ApiStatus = () => {
           <div className="text-center text-sm text-muted-foreground">
             <p>This is an open-source status page.</p>
             <p>
-              Powered by Style API • Made by techrealm.pk • Created with Lovable • {new Date().getFullYear()}
+              Powered by Style API • Made by techrealm.pk • {new Date().getFullYear()}
             </p>
           </div>
         </div>
