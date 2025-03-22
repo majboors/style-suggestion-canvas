@@ -56,8 +56,11 @@ const ImageCard = ({
         description: "Your preferences have been updated.",
       });
       
-      // Immediately call onFeedbackSubmitted to progress to next iteration
-      onFeedbackSubmitted();
+      // Add a small delay before moving to the next image
+      // This ensures the API has time to process the feedback
+      setTimeout(() => {
+        onFeedbackSubmitted();
+      }, 500);
       
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);

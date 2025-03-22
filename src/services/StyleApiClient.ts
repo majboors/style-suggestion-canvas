@@ -1,4 +1,3 @@
-
 interface AuthResponse {
   preference_id: string;
   ai_id: string;
@@ -39,8 +38,7 @@ class StyleApiClient {
     this.aiId = localStorage.getItem("style_ai_id");
     this.preferenceId = localStorage.getItem("style_preference_id");
     
-    // The iteration in local storage represents the LAST COMPLETED iteration
-    // We'll start at 0 (or stored value) so the first API call will be iteration + 1
+    // The iteration in local storage represents the CURRENT iteration (not the next one)
     this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "0");
     console.log(`StyleApiClient initialized with iteration: ${this.currentIteration}`);
   }
@@ -52,7 +50,7 @@ class StyleApiClient {
   setSessionData(aiId: string, preferenceId: string) {
     this.aiId = aiId;
     this.preferenceId = preferenceId;
-    this.currentIteration = 0; // Start at 0 so first iteration is 1
+    this.currentIteration = 0; // Reset to 0 on new session creation
     localStorage.setItem("style_ai_id", aiId);
     localStorage.setItem("style_preference_id", preferenceId);
     localStorage.setItem("style_current_iteration", "0");
@@ -117,15 +115,16 @@ class StyleApiClient {
     }
 
     try {
-      // Calculate the next iteration (current + 1)
-      const nextIteration = this.currentIteration + 1;
+      // For the very first image (iteration 0), we need to get iteration 1
+      // For all subsequent iterations, we use the current iteration + 1
+      const nextIteration = this.currentIteration === 0 ? 1 : this.currentIteration + 1;
       
       // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
-      // Make the API call for the NEXT iteration (current + 1)
+      // Call the API with the next iteration number
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
         {
@@ -147,7 +146,7 @@ class StyleApiClient {
       const data: IterationResponse = await response.json();
       console.log(`Response from API:`, data);
       
-      // Update to the iteration we just completed
+      // Update to the iteration we just received from the API
       this.setCurrentIteration(data.iteration);
       
       return data;
@@ -245,4 +244,3 @@ class StyleApiClient {
 
 const styleApiClient = new StyleApiClient();
 export default styleApiClient;
-
