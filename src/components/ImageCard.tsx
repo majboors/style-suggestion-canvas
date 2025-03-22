@@ -52,6 +52,7 @@ const ImageCard = ({
       
       // Only make API call if not already completed
       if (!isCompleted) {
+        // This is the only place where we submit feedback and get next image
         await styleApiClient.submitFeedbackAndGetNextImage(type);
         
         toast.success(`You ${type}d this style`, {
@@ -59,7 +60,7 @@ const ImageCard = ({
         });
       }
       
-      // Add a delay before moving to the next image to ensure proper UI feedback
+      // Add a delay before notifying parent component
       setTimeout(() => {
         onFeedbackSubmitted();
         // Reset feedback state after handling

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -257,8 +256,16 @@ const StyleAPI = () => {
   };
   
   const handleFeedbackSubmitted = () => {
-    loadProfile();
-    getFirstSuggestion();
+    const currentIterationFromClient = styleApiClient.getCurrentIteration();
+    setCurrentIteration(currentIterationFromClient);
+    
+    setImageUrl("");
+    setTimeout(() => {
+      loadProfile();
+      if (currentIterationFromClient >= 30) {
+        setIsCompleted(true);
+      }
+    }, 100);
   };
   
   return (
@@ -614,14 +621,7 @@ const StyleAPI = () => {
                   </div>
                 </div>
                 
-                {isLoadingSuggestion ? (
-                  <div className="py-12 flex justify-center">
-                    <div className="text-center">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-apple-blue" />
-                      <p>Loading suggestion...</p>
-                    </div>
-                  </div>
-                ) : imageUrl ? (
+                {imageUrl ? (
                   <div className="max-w-md mx-auto">
                     <ImageCard
                       imageUrl={imageUrl}

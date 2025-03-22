@@ -116,20 +116,9 @@ class StyleApiClient {
     }
 
     try {
-      // Calculate the next iteration - this is critical for the API to work correctly
-      // First image/call should be iteration 1
-      let nextIteration;
-      
-      if (this.currentIteration === 0) {
-        // Initial call - start with iteration 1
-        nextIteration = 1;
-      } else {
-        // For subsequent calls, use exactly the iteration we're going to (current + 1)
-        nextIteration = this.currentIteration + 1;
-      }
-      
       // If we're already at iteration 30 or more, we shouldn't make additional calls
       if (this.currentIteration >= 30) {
+        console.log("Maximum iterations reached (30). Not making additional API calls.");
         return {
           image_url: "",
           iteration: this.currentIteration,
@@ -137,12 +126,23 @@ class StyleApiClient {
         };
       }
       
+      // Calculate the next iteration number
+      let nextIteration;
+      
+      if (this.currentIteration === 0) {
+        // Initial call - start with iteration 1
+        nextIteration = 1;
+      } else {
+        // For subsequent calls, increment by exactly 1
+        nextIteration = this.currentIteration + 1;
+      }
+      
       // Default to dislike if no feedback provided (for first call)
       const feedbackValue = feedback || "dislike";
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
-      // Call the API with the appropriate iteration number
+      // Call the API with the next iteration number
       const response = await fetch(
         `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${nextIteration}`,
         {
@@ -164,8 +164,13 @@ class StyleApiClient {
       const data: IterationResponse = await response.json();
       console.log(`Response from API:`, data);
       
-      // Update our current iteration to what the API returned
+      // Strictly update to exactly what the API returned
       this.setCurrentIteration(data.iteration);
+      
+      // Set completed flag if we've reached 30 iterations
+      if (data.iteration >= 30) {
+        data.completed = true;
+      }
       
       return data;
     } catch (error) {
