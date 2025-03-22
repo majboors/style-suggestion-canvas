@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -41,18 +40,12 @@ import ImageCard from "@/components/ImageCard";
 import PreferenceChart from "@/components/PreferenceChart";
 import styleApiClient from "@/services/StyleApiClient";
 
-// Rename to StylePreferences to avoid conflict with PreferenceChart's Preferences
 interface StylePreferences {
-  Classic: number;
-  Creative: number;
-  Fashionista: number;
-  Sophisticated: number;
-  Romantic: number;
-  Natural: number;
-  Modern: number;
-  Glam: number;
-  Streetstyle: number;
-  [key: string]: number; // Allow other style names
+  [key: string]: number | [string, number] | { [key: string]: number };
+}
+
+interface ChartStylePreferences {
+  [key: string]: number;
 }
 
 const StyleAPI = () => {
@@ -70,6 +63,7 @@ const StyleAPI = () => {
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   
   const [preferences, setPreferences] = useState<StylePreferences | null>(null);
+  const [chartPreferences, setChartPreferences] = useState<ChartStylePreferences | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -145,12 +139,35 @@ const StyleAPI = () => {
     setCurrentIteration(0);
     setIsCompleted(false);
     setPreferences(null);
+    setChartPreferences(null);
     setSelectionHistory([]);
     setNewPreferenceId("");
     setNewAiId("");
     toast.info("Logged out successfully", {
       description: "Your session has been cleared.",
     });
+  };
+  
+  const processStylesForChart = (topStyles: StylePreferences): ChartStylePreferences => {
+    const result: ChartStylePreferences = {};
+    
+    Object.entries(topStyles).forEach(([key, value]) => {
+      if (typeof value === 'number') {
+        result[key] = value;
+      } 
+      else if (Array.isArray(value) && value.length === 2 && typeof value[1] === 'number') {
+        result[value[0]] = value[1];
+      }
+      else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        Object.entries(value).forEach(([styleKey, styleValue]) => {
+          if (typeof styleValue === 'number') {
+            result[styleKey] = styleValue;
+          }
+        });
+      }
+    });
+    
+    return result;
   };
   
   const loadProfile = async () => {
@@ -163,18 +180,10 @@ const StyleAPI = () => {
       setRawProfileResponse(profile);
       
       if (profile.top_styles) {
-        const typedPreferences: StylePreferences = {
-          Classic: profile.top_styles.Classic || 0,
-          Creative: profile.top_styles.Creative || 0,
-          Fashionista: profile.top_styles.Fashionista || 0,
-          Sophisticated: profile.top_styles.Sophisticated || 0,
-          Romantic: profile.top_styles.Romantic || 0,
-          Natural: profile.top_styles.Natural || 0,
-          Modern: profile.top_styles.Modern || 0,
-          Glam: profile.top_styles.Glam || 0,
-          Streetstyle: profile.top_styles.Streetstyle || 0
-        };
-        setPreferences(typedPreferences);
+        setPreferences(profile.top_styles);
+        
+        const processedStyles = processStylesForChart(profile.top_styles);
+        setChartPreferences(processedStyles);
       }
       
       setSelectionHistory(profile.selection_history || []);
@@ -280,7 +289,6 @@ const StyleAPI = () => {
         loadProfile();
       }, 1000);
     } else if (newIteration && !newImageUrl) {
-      // Handle case where we reached the end (no more images but valid iteration)
       setCurrentIteration(newIteration);
       setIsCompleted(true);
       
@@ -697,7 +705,7 @@ const StyleAPI = () => {
                   </div>
                 )}
                 
-                {preferences && (
+                {chartPreferences && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Current Preferences Summary</CardTitle>
@@ -705,7 +713,7 @@ const StyleAPI = () => {
                     </CardHeader>
                     <CardContent>
                       <PreferenceChart 
-                        preferences={preferences} 
+                        preferences={chartPreferences} 
                         isLoading={isLoadingProfile} 
                       />
                     </CardContent>
@@ -783,12 +791,30 @@ const StyleAPI = () => {
                 
                 <Separator />
                 
-                <PreferenceChart 
-                  preferences={preferences} 
-                  isLoading={isLoadingProfile}
-                  rawResponse={rawProfileResponse}
-                  selectionHistory={selectionHistory}
-                />
+                {chartPreferences && (
+                  <PreferenceChart 
+                    preferences={chartPreferences} 
+                    isLoading={isLoadingProfile}
+                    rawResponse={rawProfileResponse}
+                    selectionHistory={selectionHistory}
+                  />
+                )}
+                
+                {preferences && (
+                  <Card className="glass-effect">
+                    <CardHeader>
+                      <CardTitle>Raw Style Preferences Data</CardTitle>
+                      <CardDescription>Direct data from the API</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-48 rounded-md border">
+                        <pre className="p-4 text-xs font-mono whitespace-pre-wrap">
+                          {JSON.stringify(preferences, null, 2)}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                )}
                 
                 {rawSaveResponse && (
                   <Card>

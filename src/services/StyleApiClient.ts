@@ -8,6 +8,8 @@ interface IterationResponse {
   image_url: string;
   iteration: number;
   completed: boolean;
+  style?: string;
+  image_key?: string;
 }
 
 interface ProfileResponse {
@@ -110,7 +112,7 @@ class StyleApiClient {
     }
   }
 
-  async submitFeedbackAndGetNextImage(feedback?: "like" | "dislike"): Promise<IterationResponse> {
+  async submitFeedbackAndGetNextImage(feedback?: "like" | "dislike", style?: string, imageKey?: string): Promise<IterationResponse> {
     if (!this.aiId || !this.preferenceId) {
       throw new Error("Not authenticated. Please authenticate first.");
     }
@@ -134,6 +136,15 @@ class StyleApiClient {
       
       console.log(`Submitting feedback for iteration ${nextIteration}: ${feedbackValue}`);
       
+      // Prepare the request body
+      const requestBody: any = { feedback: feedbackValue };
+      
+      // For the final iteration, include style and image_key if provided
+      if (nextIteration === 30 && style && imageKey) {
+        requestBody.style = style;
+        requestBody.image_key = imageKey;
+      }
+      
       // Call the API with the next iteration number
       try {
         const response = await fetch(
@@ -144,7 +155,7 @@ class StyleApiClient {
               "Content-Type": "application/json",
               "AI-ID": this.aiId,
             },
-            body: JSON.stringify({ feedback: feedbackValue }),
+            body: JSON.stringify(requestBody),
           }
         );
 

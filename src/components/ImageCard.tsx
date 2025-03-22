@@ -25,6 +25,8 @@ const ImageCard = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [currentStyle, setCurrentStyle] = useState<string | undefined>(undefined);
+  const [currentImageKey, setCurrentImageKey] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     // Reset image loaded state when URL changes
@@ -66,11 +68,25 @@ const ImageCard = ({
       // Only make API call if not already completed
       if (!isCompleted) {
         try {
-          const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
+          // Pass style and image_key when submitting feedback for the last iteration
+          const response = await styleApiClient.submitFeedbackAndGetNextImage(
+            type, 
+            iteration === 29 ? currentStyle : undefined, 
+            iteration === 29 ? currentImageKey : undefined
+          );
           
           toast.success(`You ${type}d this style`, {
             description: "Your preferences have been updated.",
           });
+          
+          // Save the style and image_key for potential use in the next iteration
+          if (response.style) {
+            setCurrentStyle(response.style);
+          }
+          
+          if (response.image_key) {
+            setCurrentImageKey(response.image_key);
+          }
           
           // If the API returned an empty URL but marked it as completed,
           // we should notify but not update the image
@@ -166,6 +182,14 @@ const ImageCard = ({
             Iteration {iteration}/30
           </span>
         </div>
+        
+        {currentStyle && (
+          <div className="absolute top-2 left-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Style: {currentStyle}
+            </span>
+          </div>
+        )}
       </div>
       
       <div className="p-4 flex justify-center space-x-4">
