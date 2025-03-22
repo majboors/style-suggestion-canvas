@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -29,7 +28,7 @@ import {
   LogOut 
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import ApiStatusIndicator from "@/components/ApiStatusIndicator";
 import ImageCard from "@/components/ImageCard";
 import PreferenceChart from "@/components/PreferenceChart";
@@ -337,7 +336,12 @@ const StyleAPI = () => {
                 </CardHeader>
                 <CardContent>
                   <Button
-                    onClick={() => document.querySelector('[data-value="auth"]')?.click()}
+                    onClick={() => {
+                      const authTab = document.querySelector('[data-value="auth"]');
+                      if (authTab) {
+                        (authTab as HTMLElement).click();
+                      }
+                    }}
                     className="bg-apple-blue hover:bg-apple-blue-light"
                   >
                     Go to Authentication
@@ -408,7 +412,12 @@ const StyleAPI = () => {
                 </CardHeader>
                 <CardContent>
                   <Button
-                    onClick={() => document.querySelector('[data-value="auth"]')?.click()}
+                    onClick={() => {
+                      const authTab = document.querySelector('[data-value="auth"]');
+                      if (authTab) {
+                        (authTab as HTMLElement).click();
+                      }
+                    }}
                     className="bg-apple-blue hover:bg-apple-blue-light"
                   >
                     Go to Authentication
