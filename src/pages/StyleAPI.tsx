@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -33,6 +34,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import ApiStatusIndicator from "@/components/ApiStatusIndicator";
 import ImageCard from "@/components/ImageCard";

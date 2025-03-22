@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 interface Preferences {
   Classic: number;
@@ -24,6 +25,7 @@ interface Preferences {
   Modern: number;
   Glam: number;
   Streetstyle: number;
+  [key: string]: number; // Allow other style names
 }
 
 interface PreferenceChartProps {
@@ -40,8 +42,10 @@ const PreferenceChart = ({
   selectionHistory = []
 }: PreferenceChartProps) => {
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
+  const [topStylesData, setTopStylesData] = useState<{ style: string; score: number }[]>([]);
 
   useEffect(() => {
+    // Process regular preferences if available
     if (preferences) {
       const data = Object.entries(preferences).map(([name, value]) => ({
         name,
@@ -52,7 +56,31 @@ const PreferenceChart = ({
       const sortedData = [...data].sort((a, b) => b.value - a.value);
       setChartData(sortedData);
     }
-  }, [preferences]);
+
+    // Process top styles from raw response if available
+    if (rawResponse && rawResponse.top_styles) {
+      const topStyles = Object.entries(rawResponse.top_styles).map(([key, value]) => {
+        // Handle different possible formats of the top_styles data
+        let style, score;
+        if (Array.isArray(value)) {
+          [style, score] = value;
+        } else if (typeof value === 'object' && value !== null) {
+          style = Object.keys(value)[0];
+          score = value[style];
+        } else {
+          style = key;
+          score = value;
+        }
+        
+        return {
+          style: typeof style === 'string' ? style.charAt(0).toUpperCase() + style.slice(1) : style,
+          score: typeof score === 'number' ? Number(score.toFixed(2)) : score
+        };
+      });
+      
+      setTopStylesData(topStyles);
+    }
+  }, [preferences, rawResponse]);
 
   if (isLoading) {
     return (
@@ -75,6 +103,29 @@ const PreferenceChart = ({
         <CardDescription>Your current style profile based on your likes and dislikes</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
+        {/* Top Styles Section - Display directly from API response */}
+        {topStylesData.length > 0 && (
+          <div className="mb-6 p-4 border rounded-md bg-slate-50">
+            <h3 className="text-sm font-medium mb-2">Top Styles (from API)</h3>
+            <div className="space-y-2">
+              {topStylesData.map((item, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Badge variant={index === 0 ? "default" : "outline"} className="mr-2">
+                      #{index + 1}
+                    </Badge>
+                    <span className="font-medium capitalize">{item.style}</span>
+                  </div>
+                  <span className="text-sm bg-white px-2 py-1 rounded border">
+                    {item.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Regular Chart */}
         {chartData.length > 0 ? (
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
