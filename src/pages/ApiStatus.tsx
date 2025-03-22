@@ -45,13 +45,13 @@ const ApiStatus = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  const checkServiceStatus = async (service: ServiceStatus) => {
+  const checkServiceStatus = async (service: ServiceStatus): Promise<ServiceStatus> => {
     try {
       if (service.name === 'API') {
         const response = await styleApiClient.checkApiHealth();
         return {
           ...service,
-          status: response.status === 'ok' ? 'operational' : 'degraded',
+          status: response.status === 'ok' ? 'operational' : 'degraded' as 'operational' | 'degraded',
           uptime: 99.8
         };
       } else {
