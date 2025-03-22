@@ -11,15 +11,9 @@ const ApiStatusIndicator = () => {
 
   const checkApiStatus = async () => {
     try {
-      // Using a simple endpoint to check if API is responsive
-      const response = await fetch("https://haider.techrealm.online/", {
-        method: "GET",
-        headers: {
-          "Accept": "application/json",
-        },
-      });
-      
-      setStatus(response.ok ? 'online' : 'offline');
+      // Using the API health endpoint to check if API is responsive
+      const healthCheck = await styleApiClient.checkApiHealth();
+      setStatus(healthCheck.status === "ok" ? 'online' : 'offline');
     } catch (error) {
       console.error("API status check failed:", error);
       setStatus('offline');
@@ -67,7 +61,7 @@ const ApiStatusIndicator = () => {
           <p className="text-xs">Last checked: {lastChecked.toLocaleTimeString()}</p>
           <p className="text-xs mt-1">
             {styleApiClient.isAuthenticated 
-              ? "Authenticated: Yes" 
+              ? `Authenticated: Yes (Iteration ${styleApiClient.getCurrentIteration()}/30)` 
               : "Authenticated: No"}
           </p>
         </TooltipContent>

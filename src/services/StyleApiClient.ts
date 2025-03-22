@@ -1,69 +1,88 @@
 
 interface AuthResponse {
+  preference_id: string;
   ai_id: string;
 }
 
-interface SuggestionResponse {
-  image_id: string;
-  url: string;
-  exploration_phase: boolean;
-}
-
-interface FeedbackResponse {
-  status: string;
+interface IterationResponse {
+  image_url: string;
+  iteration: number;
+  completed: boolean;
 }
 
 interface ProfileResponse {
-  ai_id: string;
-  created_at: string;
-  last_active: string;
-  preferences: {
-    Classic: number;
-    Creative: number;
-    Fashionista: number;
-    Sophisticated: number;
-    Romantic: number;
-    Natural: number;
-    Modern: number;
-    Glam: number;
-    Streetstyle: number;
+  top_styles: {
+    [key: string]: number;
   };
+  selection_history: {
+    image: string;
+    style: string;
+    feedback: "Like" | "Dislike";
+    score_change: number;
+    current_score: number;
+    timestamp: number;
+  }[];
 }
 
 interface SaveProfileResponse {
-  status: string;
+  message: string;
 }
 
 class StyleApiClient {
   private apiBaseUrl: string;
   private aiId: string | null;
+  private preferenceId: string | null;
+  private currentIteration: number;
 
-  constructor(baseUrl: string = "https://haider.techrealm.online") {
+  constructor(baseUrl: string = "https://haider.techrealm.online/api") {
     this.apiBaseUrl = baseUrl;
     this.aiId = localStorage.getItem("style_ai_id");
+    this.preferenceId = localStorage.getItem("style_preference_id");
+    this.currentIteration = parseInt(localStorage.getItem("style_current_iteration") || "1");
   }
 
   get isAuthenticated(): boolean {
-    return !!this.aiId;
+    return !!this.aiId && !!this.preferenceId;
   }
 
-  setAiId(aiId: string) {
+  setSessionData(aiId: string, preferenceId: string) {
     this.aiId = aiId;
+    this.preferenceId = preferenceId;
+    this.currentIteration = 1;
     localStorage.setItem("style_ai_id", aiId);
+    localStorage.setItem("style_preference_id", preferenceId);
+    localStorage.setItem("style_current_iteration", "1");
   }
 
-  clearAiId() {
+  clearSessionData() {
     this.aiId = null;
+    this.preferenceId = null;
+    this.currentIteration = 1;
     localStorage.removeItem("style_ai_id");
+    localStorage.removeItem("style_preference_id");
+    localStorage.removeItem("style_current_iteration");
   }
 
   getAiId(): string | null {
     return this.aiId;
   }
 
-  async authenticate(accessId: string, gender: string): Promise<string> {
+  getPreferenceId(): string | null {
+    return this.preferenceId;
+  }
+
+  getCurrentIteration(): number {
+    return this.currentIteration;
+  }
+
+  incrementIteration() {
+    this.currentIteration += 1;
+    localStorage.setItem("style_current_iteration", this.currentIteration.toString());
+  }
+
+  async authenticate(accessId: string, gender: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/authenticate`, {
+      const response = await fetch(`${this.apiBaseUrl}/preference`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,80 +96,119 @@ class StyleApiClient {
       }
 
       const data: AuthResponse = await response.json();
-      this.setAiId(data.ai_id);
-      return data.ai_id;
+      this.setSessionData(data.ai_id, data.preference_id);
+      return data;
     } catch (error) {
       console.error("Authentication error:", error);
       throw error;
     }
   }
 
-  async getSuggestion(imageId: string, gender: string): Promise<SuggestionResponse> {
-    if (!this.aiId) {
+  async submitFeedbackAndGetNextImage(feedback?: "like" | "dislike"): Promise<IterationResponse> {
+    if (!this.aiId || !this.preferenceId) {
       throw new Error("Not authenticated. Please authenticate first.");
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/suggestion/${imageId}?gender=${gender}`, {
-        method: "GET",
-        headers: {
-          "AI-ID": this.aiId,
-        },
-      });
+      // If we have feedback to submit (not the first iteration)
+      if (feedback) {
+        const response = await fetch(
+          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${this.currentIteration}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "AI-ID": this.aiId,
+            },
+            body: JSON.stringify({ feedback }),
+          }
+        );
 
-      if (!response.ok) {
-        throw new Error(`Failed to get suggestion: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Failed to submit feedback: ${response.status}`);
+        }
+
+        const data: IterationResponse = await response.json();
+        
+        // Increment iteration for next time
+        this.incrementIteration();
+        
+        return data;
+      } else {
+        // For the first iteration, there's no feedback yet
+        // We'll just make a request with empty feedback to get the first image
+        const response = await fetch(
+          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/1`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "AI-ID": this.aiId,
+            },
+            body: JSON.stringify({ feedback: null }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to get first image: ${response.status}`);
+        }
+
+        const data: IterationResponse = await response.json();
+        
+        // Update current iteration to 2 since we're now on first image
+        this.incrementIteration();
+        
+        return data;
       }
-
-      return await response.json();
     } catch (error) {
-      console.error("Error getting suggestion:", error);
+      console.error("Error submitting feedback or getting next image:", error);
       throw error;
     }
   }
 
-  async submitFeedback(imageId: string, feedback: "like" | "dislike"): Promise<FeedbackResponse> {
-    if (!this.aiId) {
+  async saveProfile(): Promise<SaveProfileResponse> {
+    if (!this.aiId || !this.preferenceId) {
       throw new Error("Not authenticated. Please authenticate first.");
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/feedback`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "AI-ID": this.aiId,
-        },
-        body: JSON.stringify({
-          ai_id: this.aiId,
-          image_id: imageId,
-          feedback,
-        }),
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/preference/${this.preferenceId}/profile`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "AI-ID": this.aiId,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to submit feedback: ${response.status}`);
+        throw new Error(`Failed to save profile: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Error saving profile:", error);
       throw error;
     }
   }
 
   async getProfile(): Promise<ProfileResponse> {
-    if (!this.aiId) {
+    if (!this.aiId || !this.preferenceId) {
       throw new Error("Not authenticated. Please authenticate first.");
     }
 
     try {
-      const response = await fetch(`${this.apiBaseUrl}/profile`, {
-        method: "GET",
-        headers: {
-          "AI-ID": this.aiId,
-        },
-      });
+      const response = await fetch(
+        `${this.apiBaseUrl}/preference/${this.preferenceId}/profile`,
+        {
+          method: "GET",
+          headers: {
+            "AI-ID": this.aiId,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to get profile: ${response.status}`);
@@ -163,27 +221,15 @@ class StyleApiClient {
     }
   }
 
-  async saveProfile(): Promise<SaveProfileResponse> {
-    if (!this.aiId) {
-      throw new Error("Not authenticated. Please authenticate first.");
-    }
-
+  async checkApiHealth(): Promise<{status: string}> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/save_profile`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "AI-ID": this.aiId,
-        },
-      });
-
+      const response = await fetch(this.apiBaseUrl);
       if (!response.ok) {
-        throw new Error(`Failed to save profile: ${response.status}`);
+        throw new Error("API health check failed");
       }
-
       return await response.json();
     } catch (error) {
-      console.error("Error saving profile:", error);
+      console.error("API health check failed:", error);
       throw error;
     }
   }

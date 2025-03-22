@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -37,25 +38,25 @@ import styleApiClient from "@/services/StyleApiClient";
 const StyleAPI = () => {
   // Authentication state
   const [accessId, setAccessId] = useState("");
-  const [gender, setGender] = useState("female");
+  const [gender, setGender] = useState("women");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
   // Image suggestion state
-  const [currentImageId, setCurrentImageId] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [isExplorationPhase, setIsExplorationPhase] = useState(false);
+  const [currentIteration, setCurrentIteration] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   
   // Profile state
-  const [preferences, setPreferences] = useState(null);
+  const [preferences, setPreferences] = useState<Record<string, number> | null>(null);
+  const [selectionHistory, setSelectionHistory] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   
   // Check if user is already authenticated
   useEffect(() => {
-    const aiId = styleApiClient.getAiId();
-    if (aiId) {
+    if (styleApiClient.isAuthenticated) {
       loadProfile();
-      getNextSuggestion();
+      getFirstSuggestion();
     }
   }, []);
   
@@ -73,8 +74,7 @@ const StyleAPI = () => {
       });
       
       // Get initial suggestion and profile data
-      getNextSuggestion();
-      loadProfile();
+      getFirstSuggestion();
     } catch (error) {
       console.error("Authentication error:", error);
       toast.error("Authentication failed", {
@@ -86,16 +86,18 @@ const StyleAPI = () => {
   };
   
   const handleLogout = () => {
-    styleApiClient.clearAiId();
-    setCurrentImageId("");
+    styleApiClient.clearSessionData();
     setImageUrl("");
+    setCurrentIteration(0);
+    setIsCompleted(false);
     setPreferences(null);
+    setSelectionHistory([]);
     toast.info("Logged out successfully", {
       description: "Your session has been cleared.",
     });
   };
   
-  const getNextSuggestion = async () => {
+  const getFirstSuggestion = async () => {
     if (!styleApiClient.isAuthenticated) {
       toast.error("Please authenticate first");
       return;
@@ -103,17 +105,46 @@ const StyleAPI = () => {
     
     try {
       setIsLoadingSuggestion(true);
-      // Using different IDs for new suggestions (could be any value in a testing environment)
-      const randomImageId = Math.floor(Math.random() * 1000).toString();
-      const suggestion = await styleApiClient.getSuggestion(randomImageId, gender);
+      const response = await styleApiClient.submitFeedbackAndGetNextImage();
       
-      setCurrentImageId(suggestion.image_id);
-      setImageUrl(suggestion.url);
-      setIsExplorationPhase(suggestion.exploration_phase);
+      setImageUrl(response.image_url);
+      setCurrentIteration(response.iteration);
+      setIsCompleted(response.completed);
       
     } catch (error) {
-      console.error("Error getting suggestion:", error);
+      console.error("Error getting first suggestion:", error);
       toast.error("Failed to get suggestion", {
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  };
+  
+  const handleNextSuggestion = async () => {
+    if (!styleApiClient.isAuthenticated) {
+      toast.error("Please authenticate first");
+      return;
+    }
+    
+    try {
+      setIsLoadingSuggestion(true);
+      
+      // Get next suggestion without providing feedback (skip option)
+      const response = await styleApiClient.submitFeedbackAndGetNextImage("dislike");
+      
+      setImageUrl(response.image_url);
+      setCurrentIteration(response.iteration);
+      setIsCompleted(response.completed);
+      
+      // If we're done with all iterations, load the profile
+      if (response.completed) {
+        loadProfile();
+      }
+      
+    } catch (error) {
+      console.error("Error getting next suggestion:", error);
+      toast.error("Failed to get next suggestion", {
         description: "Please try again later.",
       });
     } finally {
@@ -127,7 +158,8 @@ const StyleAPI = () => {
     try {
       setIsLoadingProfile(true);
       const profile = await styleApiClient.getProfile();
-      setPreferences(profile.preferences);
+      setPreferences(profile.top_styles);
+      setSelectionHistory(profile.selection_history);
     } catch (error) {
       console.error("Error loading profile:", error);
       toast.error("Failed to load profile", {
@@ -146,7 +178,7 @@ const StyleAPI = () => {
     
     try {
       const response = await styleApiClient.saveProfile();
-      toast.success("Profile saved successfully");
+      toast.success(response.message || "Profile saved successfully");
     } catch (error) {
       console.error("Error saving profile:", error);
       toast.error("Failed to save profile", {
@@ -156,13 +188,13 @@ const StyleAPI = () => {
   };
   
   const handleFeedbackSubmitted = () => {
-    // Reload profile to get updated preferences after feedback
+    // After feedback is submitted, image card will update
+    // so we need to reload the profile and get a new image
     loadProfile();
     
-    // Wait a bit before getting the next suggestion to avoid rate limiting
-    setTimeout(() => {
-      getNextSuggestion();
-    }, 1000);
+    // The new image will be fetched automatically as part of the feedback submission
+    // We just need to update our local state with the new image data
+    setCurrentIteration(styleApiClient.getCurrentIteration());
   };
   
   return (
@@ -239,8 +271,8 @@ const StyleAPI = () => {
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="women">Women</SelectItem>
+                      <SelectItem value="men">Men</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -273,50 +305,48 @@ const StyleAPI = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Authentication</CardTitle>
+                    <CardTitle className="text-sm">Health Check</CardTitle>
                   </CardHeader>
                   <CardContent className="text-xs font-mono bg-gray-50 p-4 rounded">
-                    <p>POST /authenticate</p>
+                    <p>GET /api</p>
+                    <p className="mt-2">Response:</p>
+                    <p>{`{ "status": "ok" }`}</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Create Preference</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xs font-mono bg-gray-50 p-4 rounded">
+                    <p>POST /api/preference</p>
                     <p className="mt-2">Headers:</p>
                     <p>Content-Type: application/json</p>
                     <p className="mt-2">Body:</p>
-                    <p>{`{ "access_id": "string", "gender": "string" }`}</p>
+                    <p>{`{ "access_id": "string", "gender": "men|women" }`}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Image Suggestion</CardTitle>
+                    <CardTitle className="text-sm">Process Iteration</CardTitle>
                   </CardHeader>
                   <CardContent className="text-xs font-mono bg-gray-50 p-4 rounded">
-                    <p>GET /suggestion/{"{image_id}"}</p>
-                    <p className="mt-2">Headers:</p>
-                    <p>AI-ID: string</p>
-                    <p className="mt-2">Query Params:</p>
-                    <p>gender: string</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Submit Feedback</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-xs font-mono bg-gray-50 p-4 rounded">
-                    <p>POST /feedback</p>
+                    <p>POST /api/preference/{"{preference_id}"}/iteration/{"{iteration_id}"}</p>
                     <p className="mt-2">Headers:</p>
                     <p>Content-Type: application/json</p>
                     <p>AI-ID: string</p>
                     <p className="mt-2">Body:</p>
-                    <p>{`{ "ai_id": "string", "image_id": "string", "feedback": "string" }`}</p>
+                    <p>{`{ "feedback": "like|dislike" }`}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">User Profile</CardTitle>
+                    <CardTitle className="text-sm">Get/Save Profile</CardTitle>
                   </CardHeader>
                   <CardContent className="text-xs font-mono bg-gray-50 p-4 rounded">
-                    <p>GET /profile</p>
+                    <p>GET/POST /api/preference/{"{preference_id}"}/profile</p>
                     <p className="mt-2">Headers:</p>
                     <p>AI-ID: string</p>
                     <p className="mt-2">Response:</p>
@@ -354,8 +384,8 @@ const StyleAPI = () => {
                   <h2 className="text-2xl font-medium">Style Suggestions</h2>
                   <Button
                     variant="outline"
-                    onClick={getNextSuggestion}
-                    disabled={isLoadingSuggestion}
+                    onClick={handleNextSuggestion}
+                    disabled={isLoadingSuggestion || isCompleted}
                     className="transition-all-200"
                   >
                     {isLoadingSuggestion ? (
@@ -363,11 +393,26 @@ const StyleAPI = () => {
                     ) : (
                       <RefreshCw className="h-4 w-4" />
                     )}
-                    <span className="ml-2">Next Suggestion</span>
+                    <span className="ml-2">Skip & Next</span>
                   </Button>
                 </div>
                 
                 <Separator />
+                
+                <div className="flex justify-center">
+                  <div className="bg-white p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center justify-center space-x-2 text-sm mb-4">
+                      <span>Progress:</span>
+                      <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-apple-blue" 
+                          style={{ width: `${(currentIteration / 30) * 100}%` }}
+                        ></div>
+                      </div>
+                      <span>{currentIteration}/30</span>
+                    </div>
+                  </div>
+                </div>
                 
                 {isLoadingSuggestion ? (
                   <div className="py-12 flex justify-center">
@@ -379,11 +424,29 @@ const StyleAPI = () => {
                 ) : imageUrl ? (
                   <div className="max-w-md mx-auto">
                     <ImageCard
-                      imageId={currentImageId}
                       imageUrl={imageUrl}
-                      isExplorationPhase={isExplorationPhase}
+                      iteration={currentIteration}
+                      isCompleted={isCompleted}
                       onFeedbackSubmitted={handleFeedbackSubmitted}
                     />
+                    
+                    {isCompleted && (
+                      <div className="mt-6 text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <h3 className="font-medium text-green-800">All iterations completed!</h3>
+                        <p className="text-green-600 mt-1">Check the Profile tab to see your style preferences.</p>
+                        <Button
+                          onClick={() => {
+                            const profileTab = document.querySelector('[data-value="profile"]');
+                            if (profileTab) {
+                              (profileTab as HTMLElement).click();
+                            }
+                          }}
+                          className="mt-3 bg-green-600 hover:bg-green-700"
+                        >
+                          View My Profile
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-12 flex justify-center">
@@ -391,7 +454,7 @@ const StyleAPI = () => {
                       <ImageIcon className="h-8 w-8 mx-auto mb-4 opacity-30" />
                       <p>No suggestion loaded</p>
                       <Button
-                        onClick={getNextSuggestion}
+                        onClick={getFirstSuggestion}
                         className="mt-4 bg-apple-blue hover:bg-apple-blue-light"
                       >
                         Get First Suggestion
@@ -458,6 +521,37 @@ const StyleAPI = () => {
                   isLoading={isLoadingProfile} 
                 />
                 
+                {selectionHistory && selectionHistory.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Selection History</CardTitle>
+                      <CardDescription>Your style feedback history</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4 max-h-96 overflow-y-auto p-2">
+                        {selectionHistory.map((item, index) => (
+                          <div key={index} className="flex items-center space-x-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50">
+                            <div className="w-16 h-16 overflow-hidden rounded">
+                              <img src={item.image} alt={item.style} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{item.style}</div>
+                              <div className="text-sm text-gray-500">
+                                Score change: {item.score_change > 0 ? '+' : ''}{item.score_change}
+                              </div>
+                            </div>
+                            <div>
+                              <Badge variant={item.feedback === 'Like' ? 'default' : 'destructive'}>
+                                {item.feedback}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
                 <Card className="glass-effect">
                   <CardHeader>
                     <CardTitle>How It Works</CardTitle>
@@ -465,10 +559,10 @@ const StyleAPI = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <h3 className="font-medium">Exploration Phase</h3>
+                      <h3 className="font-medium">Style Learning</h3>
                       <p className="text-sm text-muted-foreground">
-                        During your first 30 style evaluations, the system is learning your preferences.
-                        You'll see a variety of styles to help build your style profile.
+                        Over 30 iterations, the system learns your style preferences through your feedback.
+                        Each "like" or "dislike" helps build a profile of your fashion taste.
                       </p>
                     </div>
                     
