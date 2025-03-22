@@ -209,7 +209,7 @@ const StyleAPI = () => {
   
   const handleFeedbackSubmitted = () => {
     loadProfile();
-    setCurrentIteration(styleApiClient.getCurrentIteration());
+    setCurrentIteration(styleApiClient.getCurrentIteration() - 1);
   };
   
   return (

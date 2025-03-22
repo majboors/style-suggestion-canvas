@@ -24,10 +24,14 @@ const ImageCard = ({ imageUrl, iteration, isCompleted, onFeedbackSubmitted }: Im
     try {
       setIsLoading(true);
       setFeedback(type);
-      await styleApiClient.submitFeedbackAndGetNextImage(type);
+      
+      const response = await styleApiClient.submitFeedbackAndGetNextImage(type);
+      
       toast.success(`You ${type}d this style`, {
         description: "Your preferences have been updated.",
       });
+      
+      // After successful feedback, notify parent component
       onFeedbackSubmitted();
     } catch (error) {
       console.error(`Error submitting ${type}:`, error);

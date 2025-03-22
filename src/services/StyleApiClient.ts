@@ -110,8 +110,36 @@ class StyleApiClient {
     }
 
     try {
-      // If we have feedback to submit (not the first iteration)
-      if (feedback) {
+      // If this is the first iteration or we're getting the first image
+      if (!feedback) {
+        // For the first iteration, we'll use a default feedback of "dislike"
+        // This is because the API requires a valid feedback parameter
+        const firstIterationId = 1;
+        const response = await fetch(
+          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${firstIterationId}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "AI-ID": this.aiId,
+            },
+            body: JSON.stringify({ feedback: "dislike" }), // Changed from null to "dislike"
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to get first image: ${response.status}`);
+        }
+
+        const data: IterationResponse = await response.json();
+        
+        // Update current iteration
+        this.currentIteration = data.iteration + 1;
+        localStorage.setItem("style_current_iteration", this.currentIteration.toString());
+        
+        return data;
+      } else {
+        // For subsequent iterations, use the provided feedback
         const response = await fetch(
           `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/${this.currentIteration}`,
           {
@@ -131,32 +159,8 @@ class StyleApiClient {
         const data: IterationResponse = await response.json();
         
         // Increment iteration for next time
-        this.incrementIteration();
-        
-        return data;
-      } else {
-        // For the first iteration, there's no feedback yet
-        // We'll just make a request with empty feedback to get the first image
-        const response = await fetch(
-          `${this.apiBaseUrl}/preference/${this.preferenceId}/iteration/1`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "AI-ID": this.aiId,
-            },
-            body: JSON.stringify({ feedback: null }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to get first image: ${response.status}`);
-        }
-
-        const data: IterationResponse = await response.json();
-        
-        // Update current iteration to 2 since we're now on first image
-        this.incrementIteration();
+        this.currentIteration = data.iteration + 1;
+        localStorage.setItem("style_current_iteration", this.currentIteration.toString());
         
         return data;
       }
