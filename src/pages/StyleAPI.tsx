@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +33,8 @@ import {
   Copy,
   Plus,
   HelpCircle,
-  BookText
+  BookText,
+  Activity
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -347,6 +349,12 @@ const StyleAPI = () => {
             <h1 className="text-2xl font-medium text-apple-black">Style API Tester</h1>
           </div>
           <div className="flex items-center space-x-4">
+            <Link to="/api-status">
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Activity className="h-4 w-4" />
+                <span className="hidden sm:inline">API Status</span>
+              </Button>
+            </Link>
             <Link to="/api-docs">
               <Button variant="outline" size="sm" className="flex items-center gap-1">
                 <BookText className="h-4 w-4" />
