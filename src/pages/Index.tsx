@@ -137,7 +137,7 @@ const Index = () => {
       <footer className="bg-white border-t border-gray-200 py-6">
         <div className="container mx-auto px-4">
           <p className="text-center text-gray-600 text-sm">
-            Style API Project • Created with Lovable • {new Date().getFullYear()}
+            Style API Project • Made by techrealm.pk • Created with Lovable • {new Date().getFullYear()}
           </p>
         </div>
       </footer>
